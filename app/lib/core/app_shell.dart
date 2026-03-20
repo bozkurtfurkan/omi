@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:provider/provider.dart';
 
-import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
 import 'package:omi/mobile/mobile_app.dart';
-import 'package:omi/pages/settings/asana_settings_page.dart';
-import 'package:omi/pages/settings/clickup_settings_page.dart';
+// TODO: service removed - import 'package:omi/pages/settings/asana_settings_page.dart';
+// TODO: service removed - import 'package:omi/pages/settings/clickup_settings_page.dart';
 import 'package:omi/pages/settings/usage_page.dart';
 import 'package:omi/pages/settings/wrapped_2025_page.dart';
 import 'package:omi/providers/action_items_provider.dart';
@@ -21,11 +21,11 @@ import 'package:omi/providers/people_provider.dart';
 import 'package:omi/providers/task_integration_provider.dart';
 import 'package:omi/providers/usage_provider.dart';
 import 'package:omi/providers/user_provider.dart';
-import 'package:omi/services/asana_service.dart';
-import 'package:omi/services/clickup_service.dart';
-import 'package:omi/services/google_tasks_service.dart';
-import 'package:omi/services/notifications.dart';
-import 'package:omi/services/todoist_service.dart';
+// TODO: service removed - import 'package:omi/services/asana_service.dart';
+// TODO: service removed - import 'package:omi/services/clickup_service.dart';
+// TODO: service removed - import 'package:omi/services/google_tasks_service.dart';
+// TODO: service removed - import 'package:omi/services/notifications.dart';
+// TODO: service removed - import 'package:omi/services/todoist_service.dart';
 import 'package:omi/utils/alerts/app_snackbar.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
@@ -82,71 +82,17 @@ class _AppShellState extends State<AppShell> {
         Navigator.of(context).push(MaterialPageRoute(builder: (context) => const UsagePage(showUpgradeDialog: true)));
       }
     } else if (uri.host == 'todoist' && uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'callback') {
-      // Handle Todoist OAuth callback
-      final error = uri.queryParameters['error'];
-      if (error != null) {
-        Logger.debug('Todoist OAuth error: $error');
-        AppSnackbar.showSnackbarError(context.l10n.failedToConnectTodoist);
-        return;
-      }
-
-      final success = uri.queryParameters['success'];
-      if (success == 'true') {
-        Logger.debug('Todoist OAuth successful (tokens in Firebase)');
-        _handleTodoistCallback();
-      } else {
-        Logger.debug('Todoist callback received but no success flag');
-      }
+      // TODO: service removed - Todoist OAuth callback removed
+      Logger.debug('Todoist OAuth callback: service removed');
     } else if (uri.host == 'asana' && uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'callback') {
-      // Handle Asana OAuth callback
-      final error = uri.queryParameters['error'];
-      if (error != null) {
-        Logger.debug('Asana OAuth error: $error');
-        AppSnackbar.showSnackbarError(context.l10n.failedToConnectAsana);
-        return;
-      }
-
-      final success = uri.queryParameters['success'];
-      final requiresSetup = uri.queryParameters['requires_setup'];
-      if (success == 'true') {
-        Logger.debug('Asana OAuth successful (tokens in Firebase)');
-        _handleAsanaCallback(requiresSetup == 'true');
-      } else {
-        Logger.debug('Asana callback received but no success flag');
-      }
+      // TODO: service removed - Asana OAuth callback removed
+      Logger.debug('Asana OAuth callback: service removed');
     } else if (uri.host == 'google-tasks' && uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'callback') {
-      // Handle Google Tasks OAuth callback
-      final error = uri.queryParameters['error'];
-      if (error != null) {
-        Logger.debug('Google Tasks OAuth error: $error');
-        AppSnackbar.showSnackbarError(context.l10n.failedToConnectGoogleTasks);
-        return;
-      }
-
-      final success = uri.queryParameters['success'];
-      if (success == 'true') {
-        Logger.debug('Google Tasks OAuth successful (tokens in Firebase)');
-        _handleGoogleTasksCallback();
-      } else {
-        Logger.debug('Google Tasks callback received but no success flag');
-      }
+      // TODO: service removed - Google Tasks OAuth callback removed
+      Logger.debug('Google Tasks OAuth callback: service removed');
     } else if (uri.host == 'clickup' && uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'callback') {
-      // Handle ClickUp OAuth callback
-      final error = uri.queryParameters['error'];
-      if (error != null) {
-        Logger.debug('ClickUp OAuth error: $error');
-        AppSnackbar.showSnackbarError(context.l10n.failedToConnectClickUp);
-        return;
-      }
-
-      final success = uri.queryParameters['success'];
-      final requiresSetup = uri.queryParameters['requires_setup'];
-      if (success == 'true') {
-        Logger.debug('ClickUp OAuth successful (tokens in Firebase)');
-        _handleClickUpCallback(requiresSetup == 'true');
-      } else {
-        Logger.debug('ClickUp callback received but no success flag');
-      }
+      // TODO: service removed - ClickUp OAuth callback removed
+      Logger.debug('ClickUp OAuth callback: service removed');
     } else if (uri.host == 'google_calendar' && uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'callback') {
       await _handleOAuthCallback(uri, 'Google', 'Google Calendar', _handleGoogleCalendarCallback);
     } else {
@@ -178,92 +124,6 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _handleSharedTasksDeepLink(String token) async {
     // AcceptSharedTasksSheet removed
-  }
-
-  Future<void> _handleTodoistCallback() async {
-    final todoistService = TodoistService();
-    final success = await todoistService.handleCallback();
-
-    if (!mounted) return;
-
-    if (success) {
-      Logger.debug('✓ Todoist authentication completed successfully');
-      Logger.debug('✓ Task integration enabled: Todoist - authentication complete');
-      AppSnackbar.showSnackbar(context.l10n.successfullyConnectedTodoist);
-
-      // Notify task integration provider to refresh UI from Firebase
-      context.read<TaskIntegrationProvider>().refresh();
-    } else {
-      Logger.debug('Failed to complete Todoist authentication');
-      AppSnackbar.showSnackbarError(context.l10n.failedToConnectTodoistRetry);
-    }
-  }
-
-  Future<void> _handleAsanaCallback(bool requiresSetup) async {
-    final asanaService = AsanaService();
-    final success = await asanaService.handleCallback();
-
-    if (!mounted) return;
-
-    if (success) {
-      Logger.debug('✓ Asana authentication completed successfully');
-      Logger.debug('✓ Task integration enabled: Asana - authentication complete');
-      AppSnackbar.showSnackbar(context.l10n.successfullyConnectedAsana);
-
-      // Notify task integration provider to refresh UI from Firebase
-      context.read<TaskIntegrationProvider>().refresh();
-
-      // Auto-open settings page for configuration
-      if (requiresSetup && mounted) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AsanaSettingsPage()));
-      }
-    } else {
-      Logger.debug('Failed to complete Asana authentication');
-      AppSnackbar.showSnackbarError(context.l10n.failedToConnectAsanaRetry);
-    }
-  }
-
-  Future<void> _handleGoogleTasksCallback() async {
-    final googleTasksService = GoogleTasksService();
-    final success = await googleTasksService.handleCallback();
-
-    if (!mounted) return;
-
-    if (success) {
-      Logger.debug('✓ Google Tasks authentication completed successfully');
-      Logger.debug('✓ Task integration enabled: Google Tasks - authentication complete');
-      AppSnackbar.showSnackbar(context.l10n.successfullyConnectedGoogleTasks);
-
-      // Notify task integration provider to refresh UI from Firebase
-      context.read<TaskIntegrationProvider>().refresh();
-    } else {
-      Logger.debug('Failed to complete Google Tasks authentication');
-      AppSnackbar.showSnackbarError(context.l10n.failedToConnectGoogleTasksRetry);
-    }
-  }
-
-  Future<void> _handleClickUpCallback(bool requiresSetup) async {
-    final clickupService = ClickUpService();
-    final success = await clickupService.handleCallback();
-
-    if (!mounted) return;
-
-    if (success) {
-      Logger.debug('✓ ClickUp authentication completed successfully');
-      Logger.debug('✓ Task integration enabled: ClickUp - authentication complete');
-      AppSnackbar.showSnackbar(context.l10n.successfullyConnectedClickUp);
-
-      // Notify task integration provider to refresh UI from Firebase
-      context.read<TaskIntegrationProvider>().refresh();
-
-      // Auto-open settings page for configuration
-      if (requiresSetup && mounted) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ClickUpSettingsPage()));
-      }
-    } else {
-      Logger.debug('Failed to complete ClickUp authentication');
-      AppSnackbar.showSnackbarError(context.l10n.failedToConnectClickUpRetry);
-    }
   }
 
   Future<void> _handleGoogleCalendarCallback() async {
@@ -310,7 +170,7 @@ class _AppShellState extends State<AppShell> {
       context.read<UserProvider>().initialize();
       context.read<PeopleProvider>().initialize();
       try {
-        await PlatformManager.instance.intercom.loginIdentifiedUser(SharedPreferencesUtil().uid);
+        // TODO: service removed - await PlatformManager.instance.intercom.loginIdentifiedUser(SharedPreferencesUtil().uid);
       } catch (e) {
         Logger.debug('Failed to login to Intercom: $e');
       }
@@ -322,7 +182,7 @@ class _AppShellState extends State<AppShell> {
       context.read<UsageProvider>().fetchSubscription();
       context.read<TaskIntegrationProvider>().loadFromBackend();
 
-      NotificationService.instance.saveNotificationToken();
+      // TODO: service removed - NotificationService.instance.saveNotificationToken();
     } else {
       if (!PlatformManager.instance.isAnalyticsSupported) {
         await PlatformManager.instance.intercom.loginUnidentifiedUser();

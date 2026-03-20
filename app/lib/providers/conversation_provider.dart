@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:omi/backend/http/api/conversations.dart';
-import 'package:omi/backend/http/api/users.dart';
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/backend/schema/conversation.dart';
-import 'package:omi/backend/schema/structured.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/users.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+// TODO: service removed - import 'package:omi/backend/schema/structured.dart';
 import 'package:omi/services/app_review_service.dart';
-import 'package:omi/services/notifications/merge_notification_handler.dart';
+// TODO: service removed - import 'package:omi/services/notifications/merge_notification_handler.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/logger.dart';
 

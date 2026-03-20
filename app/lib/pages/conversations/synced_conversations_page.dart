@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
-import 'package:omi/backend/schema/conversation.dart';
+// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/providers/sync_provider.dart';
 import 'widgets/synced_conversation_list_item.dart';

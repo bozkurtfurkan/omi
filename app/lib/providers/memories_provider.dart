@@ -7,9 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tuple/tuple.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:omi/backend/http/api/memories.dart';
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/backend/schema/memory.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/memories.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/schema/memory.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/logger.dart';

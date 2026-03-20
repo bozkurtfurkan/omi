@@ -12,9 +12,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:omi/backend/http/api/device.dart';
-import 'package:omi/backend/http/shared.dart';
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/device.dart';
+// TODO: service removed - import 'package:omi/backend/http/shared.dart';
+// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/utils/device.dart';
 import 'package:omi/utils/logger.dart';

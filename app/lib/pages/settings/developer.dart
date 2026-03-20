@@ -9,9 +9,9 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:omi/backend/http/api/knowledge_graph_api.dart';
-import 'package:omi/backend/http/api/users.dart';
-import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/knowledge_graph_api.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/users.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
 import 'package:omi/env/env.dart';
 import 'package:omi/models/stt_provider.dart';
 import 'package:omi/pages/settings/conversation_timeout_dialog.dart';

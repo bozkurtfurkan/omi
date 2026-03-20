@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'package:omi/backend/http/api/announcements.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/announcements.dart';
 import 'package:omi/models/announcement.dart';
 import 'package:omi/providers/base_provider.dart';
 

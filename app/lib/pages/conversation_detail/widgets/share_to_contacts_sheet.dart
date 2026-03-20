@@ -8,8 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:provider/provider.dart';
 
-import 'package:omi/backend/http/api/conversations.dart';
-import 'package:omi/backend/schema/conversation.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
+// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/widgets/extensions/string.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';

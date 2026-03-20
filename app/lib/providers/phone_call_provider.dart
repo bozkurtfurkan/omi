@@ -8,11 +8,11 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import 'package:omi/backend/http/api/phone_calls.dart' as api;
-import 'package:omi/backend/http/shared.dart';
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/backend/schema/phone_call.dart';
-import 'package:omi/backend/schema/transcript_segment.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/phone_calls.dart' as api;
+// TODO: service removed - import 'package:omi/backend/http/shared.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/schema/phone_call.dart';
+// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/services/phone_call_service.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/logger.dart';

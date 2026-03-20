@@ -9,7 +9,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:omi/widgets/shimmer_with_timeout.dart';
 
-import 'package:omi/backend/http/api/imports.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/imports.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';

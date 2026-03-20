@@ -11,8 +11,8 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:omi/backend/http/api/wrapped.dart';
-import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/wrapped.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
 import 'package:omi/pages/settings/wrapped_2025_share_templates.dart' as templates;
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';

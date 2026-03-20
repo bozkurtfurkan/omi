@@ -1,4 +1,4 @@
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
+// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
 
 class DeviceDiscoveryResult {
   final List<BtDevice> devices;

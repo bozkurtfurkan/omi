@@ -5,7 +5,7 @@ import 'package:flutter/scheduler.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:omi/backend/http/api/goals.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/goals.dart';
 
 class GoalsProvider extends ChangeNotifier {
   static const String _goalsStorageKey = 'goals_tracker_local_goals';

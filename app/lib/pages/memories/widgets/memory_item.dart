@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
-import 'package:omi/backend/http/api/conversations.dart';
-import 'package:omi/backend/schema/memory.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
+// TODO: service removed - import 'package:omi/backend/schema/memory.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/page.dart';
 import 'package:omi/pages/memories/page.dart';

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'package:just_audio/just_audio.dart';
 
-import 'package:omi/backend/http/api/audio.dart';
-import 'package:omi/backend/schema/conversation.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/audio.dart';
+// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
 

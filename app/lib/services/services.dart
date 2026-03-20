@@ -8,8 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 
-import 'package:omi/backend/http/shared.dart';
-import 'package:omi/services/connectivity_service.dart';
+// TODO: service removed - import 'package:omi/backend/http/shared.dart';
+// TODO: service removed - import 'package:omi/services/connectivity_service.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/sockets.dart';
 import 'package:omi/services/wals.dart';
@@ -66,7 +66,7 @@ class ServiceManager {
       throw Exception("Service manager is initiated");
     }
     _instance = ServiceManager._create();
-    await ConnectivityService().init();
+    // TODO: service removed - await ConnectivityService().init();
   }
 
   Future<void> start() async {
@@ -79,7 +79,7 @@ class ServiceManager {
   }
 
   void deinit() async {
-    ConnectivityService().dispose();
+    // TODO: service removed - ConnectivityService().dispose();
     await _wal.stop();
     _mic.stop();
     _device.stop();

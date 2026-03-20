@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 
 import 'package:collection/collection.dart';
 
-import 'package:omi/backend/http/api/calendar_meetings.dart' as calendar_api;
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/backend/schema/calendar_meeting_context.dart';
-import 'package:omi/services/calendar_service.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/calendar_meetings.dart' as calendar_api;
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/schema/calendar_meeting_context.dart';
+// TODO: service removed - import 'package:omi/services/calendar_service.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 

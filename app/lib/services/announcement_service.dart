@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'package:omi/backend/http/api/announcements.dart';
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/announcements.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/models/announcement.dart';
 import 'package:omi/providers/announcement_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';

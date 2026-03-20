@@ -14,17 +14,17 @@ import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import 'package:omi/backend/http/api/conversations.dart';
-import 'package:omi/backend/http/api/users.dart';
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/services/auth_service.dart';
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
-import 'package:omi/backend/schema/conversation.dart';
-import 'package:omi/backend/schema/geolocation.dart';
-import 'package:omi/backend/schema/message.dart';
-import 'package:omi/backend/schema/person.dart';
-import 'package:omi/backend/schema/structured.dart';
-import 'package:omi/backend/schema/transcript_segment.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/users.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/services/auth_service.dart';
+// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+// TODO: service removed - import 'package:omi/backend/schema/geolocation.dart';
+// TODO: service removed - import 'package:omi/backend/schema/message.dart';
+// TODO: service removed - import 'package:omi/backend/schema/person.dart';
+// TODO: service removed - import 'package:omi/backend/schema/structured.dart';
+// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/models/custom_stt_config.dart';
 import 'package:omi/models/stt_provider.dart';
 import 'package:omi/providers/calendar_provider.dart';
@@ -32,7 +32,7 @@ import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/providers/message_provider.dart';
 import 'package:omi/providers/people_provider.dart';
 import 'package:omi/providers/usage_provider.dart';
-import 'package:omi/services/connectivity_service.dart';
+// TODO: service removed - import 'package:omi/services/connectivity_service.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/sockets/transcription_service.dart';
 import 'package:omi/services/wals.dart';
@@ -47,7 +47,7 @@ import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 import 'package:omi/main.dart';
 
-import 'package:omi/backend/schema/message_event.dart'
+// TODO: service removed - import 'package:omi/backend/schema/message_event.dart'
     show
         MessageEvent,
         MessageServiceStatusEvent,

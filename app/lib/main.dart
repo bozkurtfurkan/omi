@@ -8,11 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
-import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+// TODO: service removed - import 'package:awesome_notifications/awesome_notifications.dart';
+// TODO: service removed - import 'package:firebase_auth/firebase_auth.dart';
+// TODO: service removed - import 'package:firebase_core/firebase_core.dart';
+// TODO: service removed - import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+// TODO: service removed - import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as ble;
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,14 +21,14 @@ import 'package:opus_flutter/opus_flutter.dart' as opus_flutter;
 import 'package:provider/provider.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
-import 'package:omi/backend/http/shared.dart';
-import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/http/shared.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
 import 'package:omi/core/app_shell.dart';
 import 'package:omi/env/dev_env.dart';
 import 'package:omi/env/env.dart';
 import 'package:omi/env/prod_env.dart';
-import 'package:omi/firebase_options_dev.dart' as dev;
-import 'package:omi/firebase_options_prod.dart' as prod;
+// TODO: service removed - import 'package:omi/firebase_options_dev.dart' as dev;
+// TODO: service removed - import 'package:omi/firebase_options_prod.dart' as prod;
 import 'package:omi/flavors.dart';
 import 'package:omi/l10n/app_localizations.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
@@ -60,11 +60,11 @@ import 'package:omi/providers/usage_provider.dart';
 import 'package:omi/providers/user_provider.dart';
 import 'package:omi/providers/voice_recorder_provider.dart';
 import 'package:omi/providers/phone_call_provider.dart';
-import 'package:omi/services/auth_service.dart';
-import 'package:omi/services/notifications.dart';
-import 'package:omi/services/notifications/action_item_notification_handler.dart';
-import 'package:omi/services/notifications/important_conversation_notification_handler.dart';
-import 'package:omi/services/notifications/merge_notification_handler.dart';
+// TODO: service removed - import 'package:omi/services/auth_service.dart';
+// TODO: service removed - import 'package:omi/services/notifications.dart';
+// TODO: service removed - import 'package:omi/services/notifications/action_item_notification_handler.dart';
+// TODO: service removed - import 'package:omi/services/notifications/important_conversation_notification_handler.dart';
+// TODO: service removed - import 'package:omi/services/notifications/merge_notification_handler.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/utils/analytics/growthbook.dart';
 import 'package:omi/utils/debug_log_manager.dart';
@@ -76,43 +76,6 @@ import 'package:omi/pages/settings/developer.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
 import 'package:omi/utils/platform/platform_service.dart';
-
-/// Background message handler for FCM data messages
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-
-  await AwesomeNotifications().initialize(null, [
-    NotificationChannel(
-      channelKey: 'channel',
-      channelName: 'Omi Notifications',
-      channelDescription: 'Notification channel for Omi',
-      defaultColor: const Color(0xFF9D50DD),
-      ledColor: Colors.white,
-    ),
-  ]);
-
-  final data = message.data;
-  final messageType = data['type'];
-  const channelKey = 'channel';
-
-  // Handle action item messages
-  if (messageType == 'action_item_reminder') {
-    await ActionItemNotificationHandler.handleReminderMessage(data, channelKey);
-  } else if (messageType == 'action_item_update') {
-    await ActionItemNotificationHandler.handleUpdateMessage(data, channelKey);
-  } else if (messageType == 'action_item_delete') {
-    await ActionItemNotificationHandler.handleDeletionMessage(data);
-  } else if (messageType == 'merge_completed') {
-    await MergeNotificationHandler.handleMergeCompleted(data, channelKey, isAppInForeground: false);
-  } else if (messageType == 'important_conversation') {
-    await ImportantConversationNotificationHandler.handleImportantConversation(
-      data,
-      channelKey,
-      isAppInForeground: false,
-    );
-  }
-}
 
 Future _init() async {
   // Env
@@ -132,55 +95,20 @@ Future _init() async {
   // Service manager
   await ServiceManager.init();
 
-  // Firebase
-  if (Firebase.apps.isEmpty) {
-    final options = (PlatformService.isWindows || F.env == Environment.prod)
-        ? prod.DefaultFirebaseOptions.currentPlatform
-        : dev.DefaultFirebaseOptions.currentPlatform;
-    await Firebase.initializeApp(options: options);
-  } else {
-    // Firebase may already be initialized by native SDK (macOS)
-    debugPrint('Firebase already initialized.');
-  }
+  // TODO: service removed - Firebase initialization removed
 
   await PlatformManager.initializeServices();
-  await NotificationService.instance.initialize();
+  // TODO: service removed - await NotificationService.instance.initialize();
 
-  // Register FCM background message handler
-  if (PlatformManager().isFCMSupported) {
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  }
+  // TODO: service removed - FCM background message handler removed
 
-  await SharedPreferencesUtil.init();
+  // TODO: service removed - await SharedPreferencesUtil.init();
 
-  // TestFlight environment detection — must be after SharedPreferencesUtil.init()
-  if (F.env == Environment.prod) {
-    final isTestFlight = await EnvironmentDetector.isTestFlight();
-    if (isTestFlight) {
-      Env.isTestFlight = true;
-      if (SharedPreferencesUtil().testFlightUseStagingApi) {
-        Env.overrideApiBaseUrl(Env.stagingApiUrl);
-        debugPrint('TestFlight detected: using staging backend (${Env.stagingApiUrl})');
-      } else {
-        debugPrint('TestFlight detected: user chose production backend');
-      }
-    }
-  }
+  // TODO: service removed - TestFlight environment detection removed
 
-  // DEBUG: Log Firebase Auth state before getIdToken
-  print('DEBUG main: Before getIdToken - currentUser=${FirebaseAuth.instance.currentUser?.uid}');
-  bool isAuth = (await AuthService.instance.getIdToken()) != null;
-  print('DEBUG main: After getIdToken - isAuth=$isAuth, currentUser=${FirebaseAuth.instance.currentUser?.uid}');
-  if (isAuth) {
-    PlatformManager.instance.mixpanel.identify();
-    // Restore onboarding state from server if not already set locally
-    // This handles the case where cached credentials are used on startup
-    if (!SharedPreferencesUtil().onboardingCompleted) {
-      print('DEBUG main: Restoring onboarding state from server...');
-      await AuthService.instance.restoreOnboardingState();
-      print('DEBUG main: After restore - onboardingCompleted=${SharedPreferencesUtil().onboardingCompleted}');
-    }
-  }
+  // TODO: service removed - Firebase Auth / AuthService removed
+  bool isAuth = false;
+
   if (PlatformService.isMobile) initOpus(await opus_flutter.load());
 
   await GrowthbookUtil.init();
@@ -190,21 +118,6 @@ Future _init() async {
   }
 
   await CrashlyticsManager.init();
-  if (isAuth) {
-    PlatformManager.instance.crashReporter.identifyUser(
-      FirebaseAuth.instance.currentUser?.email ?? '',
-      SharedPreferencesUtil().fullName,
-      SharedPreferencesUtil().uid,
-    );
-  }
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-  };
-
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
 
   await ServiceManager.instance().start();
   return;
@@ -220,7 +133,10 @@ void main() {
     }
     await _init();
     runApp(const MyApp());
-  }, (error, stack) => FirebaseCrashlytics.instance.recordError(error, stack, fatal: true));
+  }, (error, stack) {
+    // TODO: service removed - FirebaseCrashlytics removed
+    Logger.debug('Unhandled error: $error\n$stack');
+  });
 }
 
 class MyApp extends StatefulWidget {
@@ -238,12 +154,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
-    NotificationUtil.initializeNotificationsEventListeners();
-    NotificationUtil.initializeIsolateReceivePort();
+    // TODO: service removed - NotificationUtil.initializeNotificationsEventListeners();
+    // TODO: service removed - NotificationUtil.initializeIsolateReceivePort();
     WidgetsBinding.instance.addObserver(this);
-    if (SharedPreferencesUtil().devLogsToFileEnabled) {
-      DebugLogManager.setEnabled(true);
-    }
+    // TODO: service removed - SharedPreferencesUtil().devLogsToFileEnabled check removed
 
     super.initState();
   }
@@ -251,7 +165,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _deinit() {
     Logger.debug("App > _deinit");
     ServiceManager.instance().deinit();
-    ApiClient.dispose();
+    // TODO: service removed - ApiClient.dispose();
   }
 
   @override

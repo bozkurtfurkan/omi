@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:intercom_flutter/intercom_flutter.dart';
+// TODO: service removed - import 'package:intercom_flutter/intercom_flutter.dart';
 
-import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
 import 'package:omi/env/env.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 

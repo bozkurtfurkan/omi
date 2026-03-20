@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
+// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/gen/assets.gen.dart';
 import 'package:omi/utils/device.dart';
 

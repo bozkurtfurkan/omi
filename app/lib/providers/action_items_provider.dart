@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:omi/backend/http/api/action_items.dart' as api;
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/backend/schema/schema.dart';
-import 'package:omi/services/notifications/action_item_notification_handler.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/action_items.dart' as api;
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/schema/schema.dart';
+// TODO: service removed - import 'package:omi/services/notifications/action_item_notification_handler.dart';
 import 'package:omi/utils/logger.dart';
 
 class ActionItemsProvider extends ChangeNotifier {

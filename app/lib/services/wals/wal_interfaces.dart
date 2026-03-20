@@ -1,5 +1,5 @@
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
-import 'package:omi/backend/schema/conversation.dart';
+// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/models/sync_state.dart';
 import 'package:omi/services/wals/wal.dart';
 

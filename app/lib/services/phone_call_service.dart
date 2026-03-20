@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:omi/backend/schema/phone_call.dart';
+// TODO: service removed - import 'package:omi/backend/schema/phone_call.dart';
 import 'package:omi/utils/logger.dart';
 
 /// Native method channel bridge for phone call operations.

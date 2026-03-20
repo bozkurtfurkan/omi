@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:omi/backend/schema/transcript_segment.dart';
+// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
 void showEditSegmentBottomSheet(

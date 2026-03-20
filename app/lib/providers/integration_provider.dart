@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:omi/backend/http/api/integrations.dart';
-import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/integrations.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
 import 'package:omi/pages/settings/integrations_page.dart';
 import 'package:omi/utils/logger.dart';
 

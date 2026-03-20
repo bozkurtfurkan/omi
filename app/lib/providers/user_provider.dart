@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import 'package:awesome_notifications/awesome_notifications.dart';
+// TODO: service removed - import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'package:omi/backend/http/api/privacy.dart';
-import 'package:omi/backend/http/api/users.dart' as users_api;
-import 'package:omi/backend/http/api/users.dart';
-import 'package:omi/backend/preferences.dart';
-import 'package:omi/backend/schema/geolocation.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/privacy.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/users.dart' as users_api;
+// TODO: service removed - import 'package:omi/backend/http/api/users.dart';
+// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: service removed - import 'package:omi/backend/schema/geolocation.dart';
 import 'package:omi/main.dart';
-import 'package:omi/services/notifications.dart';
+// TODO: service removed - import 'package:omi/services/notifications.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:omi/backend/schema/memory.dart';
+// TODO: service removed - import 'package:omi/backend/schema/memory.dart';
 
 class CategoryChip extends StatelessWidget {
   final MemoryCategory category;

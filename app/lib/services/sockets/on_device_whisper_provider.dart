@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:whisper_flutter_new/whisper_flutter_new.dart';
 
 import 'package:omi/models/stt_result.dart';
-import 'package:omi/services/custom_stt_log_service.dart';
+// TODO: service removed - import 'package:omi/services/custom_stt_log_service.dart';
 import 'package:omi/services/sockets/pure_polling.dart';
 
 class OnDeviceWhisperProvider implements ISttProvider {

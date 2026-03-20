@@ -6,12 +6,12 @@ import 'package:flutter/foundation.dart';
 
 import 'package:version/version.dart';
 
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
+// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/devices/device_connection.dart';
 import 'package:omi/services/devices/models.dart';
 import 'package:omi/services/devices/wifi_sync_error.dart';
-import 'package:omi/services/notifications.dart';
+// TODO: service removed - import 'package:omi/services/notifications.dart';
 import 'package:omi/utils/logger.dart';
 
 class OmiDeviceConnection extends DeviceConnection {

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:omi/backend/http/api/goals.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/goals.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
 

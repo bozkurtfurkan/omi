@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:omi/backend/schema/memory.dart';
+// TODO: service removed - import 'package:omi/backend/schema/memory.dart';
 import 'package:omi/providers/memories_provider.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/widgets/extensions/string.dart';

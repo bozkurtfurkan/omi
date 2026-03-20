@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+// TODO: service removed - import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import 'package:omi/utils/debugging/crash_reporter.dart';
 import 'package:omi/utils/logger.dart';

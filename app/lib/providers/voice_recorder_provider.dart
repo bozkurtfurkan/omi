@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 
 import 'package:permission_handler/permission_handler.dart';
 
-import 'package:omi/backend/http/api/messages.dart';
+// TODO: service removed - import 'package:omi/backend/http/api/messages.dart';
 import 'package:omi/main.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/utils/alerts/app_snackbar.dart';
