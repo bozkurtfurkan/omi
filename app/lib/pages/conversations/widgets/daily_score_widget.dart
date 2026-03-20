@@ -37,29 +37,10 @@ class DailyScoreWidgetState extends State<DailyScoreWidget> {
         final goals = goalsProvider.goals;
         final isLoadingGoals = goalsProvider.isLoading;
 
-        // Calculate today's tasks - only tasks due today
-        final now = DateTime.now();
-        final todayStart = DateTime(now.year, now.month, now.day);
-        final todayEnd = todayStart.add(const Duration(days: 1));
-
-        // Get tasks due today only (ActionItemsProvider removed)
-        final todayTasks = <dynamic>[];
-
-        final totalTasks = todayTasks.length;
-        final completedTasks = todayTasks.where((t) => t.completed).length;
-
-        // Calculate score (0-5)
-        double score;
-        if (totalTasks == 0) {
-          score = 0; // No tasks = 0 score
-        } else {
-          final ratio = completedTasks / totalTasks;
-          // Map 0-1 ratio to 0-5 score
-          score = (ratio * 5).clamp(0.0, 5.0);
-        }
-
-        // Round to nearest 0.1
-        score = (score * 10).roundToDouble() / 10;
+        // Task tracking removed; score is always 0
+        const int totalTasks = 0;
+        const int completedTasks = 0;
+        const double score = 0.0;
 
         final statusColor = _getStatusColor(score);
 
@@ -98,7 +79,7 @@ class DailyScoreWidgetState extends State<DailyScoreWidget> {
                             onTap: () {
                               HapticFeedback.lightImpact();
                               MixpanelManager().dailyScoreCtaTapped(ctaType: goals.isEmpty ? 'add_goal' : 'new_task');
-                              // action items removed
+                              _addGoal();
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

@@ -198,7 +198,7 @@ class _DataPrivacyPageState extends State<DataPrivacyPage> {
                                       style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                                     ),
                                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                                    onTap: () {},
+                                    onTap: null,
                                   ),
                                 );
                               }).toList(),

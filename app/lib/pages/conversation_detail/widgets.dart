@@ -771,7 +771,7 @@ class AppResultDetailWidget extends StatelessWidget {
           // App info in a more subtle format below the content - only show if content is not empty
           if (content.isNotEmpty)
             GestureDetector(
-              onTap: () async {},
+              onTap: null,
               child: Padding(
                 padding: const EdgeInsets.only(top: 12, left: 4),
                 child: Row(

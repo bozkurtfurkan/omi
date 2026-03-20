@@ -47,7 +47,7 @@ class ExternalIntegrationsSection extends StatelessWidget {
                       leading: CircleAvatar(backgroundImage: NetworkImage(app.getImageUrl())),
                       title: Text(app.getName()),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {},
+                      onTap: null,
                     );
                   },
                   separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.grey),

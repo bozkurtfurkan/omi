@@ -118,16 +118,6 @@ class _SetupQuestionsPageState extends State<SetupQuestionsPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            Center(
-              child: GestureDetector(
-                onTap: () {},
-                child: Text(
-                  context.l10n.setupSkipHelp,
-                  style: const TextStyle(color: Colors.grey, decoration: TextDecoration.underline),
-                ),
-              ),
-            ),
           ],
         ),
       ),

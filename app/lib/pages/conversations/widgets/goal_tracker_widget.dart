@@ -203,13 +203,6 @@ class _GoalTrackerWidgetState extends State<GoalTrackerWidget> with WidgetsBindi
     }
   }
 
-  void _openChatWithAdvice() {
-    if (_advice == null || _advice!.isEmpty) return;
-    HapticFeedback.lightImpact();
-
-    // ChatPage removed
-  }
-
   Future<void> _createGoalFromSuggestion() async {
     if (_suggestion == null) {
       _createDefaultGoal();
@@ -608,7 +601,7 @@ class _GoalTrackerWidgetState extends State<GoalTrackerWidget> with WidgetsBindi
           if (_advice != null && _advice!.isNotEmpty) ...[
             const SizedBox(height: 12),
             GestureDetector(
-              onTap: () => _openChatWithAdvice(),
+              onTap: null,
               behavior: HitTestBehavior.opaque,
               child: Container(
                 width: double.infinity,
@@ -624,8 +617,6 @@ class _GoalTrackerWidgetState extends State<GoalTrackerWidget> with WidgetsBindi
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.chevron_right, size: 20, color: Colors.white.withOpacity(0.3)),
                   ],
                 ),
               ),

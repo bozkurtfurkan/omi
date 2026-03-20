@@ -706,7 +706,7 @@ class _ProcessingConversationWidgetState extends State<ProcessingConversationWid
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {},
+      onTap: null,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Container(

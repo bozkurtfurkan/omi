@@ -41,7 +41,7 @@ class SpeechProfileCardWidget extends StatelessWidget {
                   return Stack(
                     children: [
                       GestureDetector(
-                        onTap: () async {},
+                        onTap: null,
                         child: Container(
                           decoration: const BoxDecoration(
                             color: Color(0xFF1F1F25),
