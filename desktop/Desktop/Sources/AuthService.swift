@@ -43,10 +43,21 @@ class AuthService {
     private var appleSignInDelegate: AppleSignInDelegate?
 
     // API Configuration
-    // Production: Cloud Run backend
-    private let apiBaseURL: String = "https://omi-desktop-auth-208440318997.us-central1.run.app/"
+    // Auth backend URL — must be set via OMI_AUTH_URL env var (in .env)
+    private let apiBaseURL: String = {
+        if let envURL = getenv("OMI_AUTH_URL") {
+            let url = String(cString: envURL)
+            if !url.isEmpty { return url.hasSuffix("/") ? url : url + "/" }
+        }
+        NSLog("OMI AUTH: OMI_AUTH_URL not set — OAuth sign-in will fail")
+        return ""
+    }()
     private var redirectURI: String {
         return "\(urlScheme)://auth/callback"
+    }
+
+    private var currentBundleIdentifier: String {
+        Bundle.main.bundleIdentifier ?? "unknown.bundle"
     }
 
     private var urlScheme: String {
@@ -70,8 +81,16 @@ class AuthService {
     private let kAuthTokenExpiry = "auth_tokenExpiry"
     private let kAuthTokenUserId = "auth_tokenUserId"  // User ID that owns the stored token
 
-    // Firebase Web API key (from GoogleService-Info.plist)
-    private let firebaseApiKey = "AIzaSyD9dzBdglc7IO9pPDIOvqnCoTis_xKkkC8"
+    // Firebase Web API key — fetched from backend via APIKeyService, set as env var.
+    // No hardcoded fallback — if the key isn't available, auth operations will fail
+    // with a clear error instead of silently using a potentially wrong key.
+    private var firebaseApiKey: String {
+        if let envKey = getenv("FIREBASE_API_KEY"), let key = String(validatingUTF8: envKey), !key.isEmpty {
+            return key
+        }
+        log("AuthService: FIREBASE_API_KEY not set — auth operations will fail")
+        return ""
+    }
 
     // MARK: - User Name Properties
 
@@ -189,6 +208,12 @@ class AuthService {
                     AuthState.shared.userEmail = user?.email
                     AuthState.shared.isRestoringAuth = false
                     self?.saveAuthState(isSignedIn: true, email: user?.email, userId: user?.uid)
+                    // Configure database for the signed-in user immediately so any code
+                    // that touches the DB during onboarding (e.g. save_knowledge_graph)
+                    // writes to the correct per-user path instead of "anonymous".
+                    if let uid = user?.uid {
+                        Task { await RewindDatabase.shared.configure(userId: uid) }
+                    }
                     // Load name from backend profile (Firestore), then Firebase Auth as fallback
                     self?.loadNameFromBackendIfNeeded()
                     // Sync assistant settings from backend (fire-and-forget)
@@ -303,6 +328,7 @@ class AuthService {
         }
 
         saveAuthState(isSignedIn: true, email: AuthState.shared.userEmail, userId: userId)
+        Task { await RewindDatabase.shared.configure(userId: userId) }
 
         if givenName.isEmpty {
             loadNameFromBackendIfNeeded()
@@ -310,6 +336,7 @@ class AuthService {
 
         AnalyticsManager.shared.identify()
         AnalyticsManager.shared.signInCompleted(provider: "apple")
+        Task { await APIKeyService.shared.fetchKeys() }
 
         if !AnalyticsManager.isDevBuild {
             let sentryUser = User(userId: userId)
@@ -414,6 +441,7 @@ class AuthService {
             // Save auth state immediately
             let userId = firebaseTokens.localId
             saveAuthState(isSignedIn: true, email: tokenResult.email, userId: userId)
+            await RewindDatabase.shared.configure(userId: userId)
 
             // Try to load name from backend profile (Firestore), then Firebase Auth as fallback
             if givenName.isEmpty {
@@ -424,6 +452,7 @@ class AuthService {
             // (identify must happen before events for PostHog person profiles to work)
             AnalyticsManager.shared.identify()
             AnalyticsManager.shared.signInCompleted(provider: provider)
+            Task { await APIKeyService.shared.fetchKeys() }
 
             // Set Sentry user context for error tracking (skip in dev builds)
             if !AnalyticsManager.isDevBuild {
@@ -494,6 +523,16 @@ class AuthService {
         let code = queryItems.first(where: { $0.name == "code" })?.value
         let state = queryItems.first(where: { $0.name == "state" })?.value
         let error = queryItems.first(where: { $0.name == "error" })?.value
+
+        if let state, let targetBundleId = targetBundleIdentifier(from: state), targetBundleId != currentBundleIdentifier {
+            NSLog(
+                "OMI AUTH: Callback is for bundle %@, current bundle is %@. Forwarding...",
+                targetBundleId,
+                currentBundleIdentifier
+            )
+            forwardOAuthCallback(url: url, toBundleId: targetBundleId)
+            return
+        }
 
         if let error = error {
             NSLog("OMI AUTH: OAuth error: %@", error)
@@ -765,7 +804,9 @@ class AuthService {
 
     /// Exchange custom token for ID token using Firebase REST API
     private func exchangeCustomTokenForIdToken(customToken: String) async throws -> FirebaseTokenResult {
-        let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=\(firebaseApiKey)")!
+        guard let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=\(firebaseApiKey)") else {
+            throw AuthError.invalidURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -829,7 +870,9 @@ class AuthService {
             throw AuthError.notSignedIn
         }
 
-        let url = URL(string: "https://securetoken.googleapis.com/v1/token?key=\(firebaseApiKey)")!
+        guard let url = URL(string: "https://securetoken.googleapis.com/v1/token?key=\(firebaseApiKey)") else {
+            throw AuthError.invalidURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -853,8 +896,12 @@ class AuthService {
                 || errorBody.contains("USER_DISABLED")
                 || httpResponse.statusCode == 400
             if isDefinitiveAuthFailure {
-                NSLog("OMI AUTH: Definitive auth failure - clearing tokens")
+                NSLog("OMI AUTH: Definitive auth failure - clearing tokens and session")
                 clearTokens()
+                // Also clear auth state so the UI shows sign-in instead of a ghost session
+                // where auth_isSignedIn=true but no valid tokens exist.
+                isSignedIn = false
+                saveAuthState(isSignedIn: false, email: nil, userId: nil)
             }
             throw AuthError.notSignedIn
         }
@@ -988,6 +1035,7 @@ class AuthService {
 
         try Auth.auth().signOut()
         isSignedIn = false
+        APIKeyService.shared.clear()
         // Clear saved auth state and tokens
         saveAuthState(isSignedIn: false, email: nil, userId: nil)
         clearTokens()
@@ -1026,6 +1074,9 @@ class AuthService {
         UserDefaults.standard.removeObject(forKey: "hasTriggeredScreenRecording")
         UserDefaults.standard.removeObject(forKey: "hasTriggeredMicrophone")
         UserDefaults.standard.removeObject(forKey: "hasTriggeredSystemAudio")
+        UserDefaults.standard.removeObject(forKey: "onboardingChatMessages")
+        UserDefaults.standard.removeObject(forKey: "onboardingACPSessionId")
+        UserDefaults.standard.removeObject(forKey: "onboardingJustCompleted")
 
         // screenAnalysisEnabled: Don't removeObject here — SettingsSyncManager overwrites
         // it from the server within ~200ms of sign-in. Instead, onboarding force-starts
@@ -1041,10 +1092,38 @@ class AuthService {
     private func generateState() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        return Data(bytes).base64EncodedString()
+        let nonce = Data(bytes).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
+        // Encode source bundle in state so callbacks can be routed back to the
+        // originating app, even when multiple dev builds share URL schemes.
+        return "\(nonce)|\(currentBundleIdentifier)"
+    }
+
+    private func targetBundleIdentifier(from state: String) -> String? {
+        let parts = state.split(separator: "|", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return nil }
+        let bundleId = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+        return bundleId.isEmpty ? nil : bundleId
+    }
+
+    private func forwardOAuthCallback(url: URL, toBundleId bundleId: String) {
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
+            NSLog("OMI AUTH: Unable to forward callback. Bundle %@ not found.", bundleId)
+            return
+        }
+
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+
+        NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, error in
+            if let error {
+                NSLog("OMI AUTH: Failed to forward callback to %@: %@", bundleId, error.localizedDescription)
+            } else {
+                NSLog("OMI AUTH: Forwarded callback to %@", bundleId)
+            }
+        }
     }
 
     // MARK: - Native Apple Sign In Helpers
@@ -1069,7 +1148,9 @@ class AuthService {
     /// Sign in with Firebase using an Apple identity token via REST API
     /// This bypasses the backend entirely - Firebase verifies the Apple JWT directly
     private func signInWithAppleIdentityToken(identityToken: String, nonce: String) async throws -> FirebaseTokenResult {
-        let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=\(firebaseApiKey)")!
+        guard let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=\(firebaseApiKey)") else {
+            throw AuthError.invalidURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -1178,7 +1259,7 @@ private class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, 
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        return NSApp.keyWindow ?? NSApp.windows.first!
+        return NSApp.keyWindow ?? NSApp.windows.first ?? NSWindow()
     }
 }
 

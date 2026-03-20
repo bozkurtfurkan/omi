@@ -1,9 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
+import httpx
+
 import database.users as users_db
 import database.action_items as action_items_db
 from utils.notifications import send_apple_reminders_sync_push
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 async def auto_sync_action_item(uid: str, action_item: dict) -> dict:
@@ -36,7 +41,7 @@ async def auto_sync_action_item(uid: str, action_item: dict) -> dict:
             return await _sync_to_cloud_service(uid, default_app, integration, action_item)
 
     except Exception as e:
-        print(f"Auto-sync failed for user {uid}: {e}")
+        logger.error(f"Auto-sync failed for user {uid}: {e}")
         return {"synced": False, "error": str(e)}
 
 
@@ -44,13 +49,15 @@ async def _sync_to_cloud_service(uid: str, app_key: str, integration: dict, acti
     """Create task in external service using existing task_integrations logic."""
     from routers.task_integrations import _create_task_internal
 
-    result = await _create_task_internal(
-        uid=uid,
-        app_key=app_key,
-        integration=integration,
-        title=action_item["description"],
-        due_date=action_item.get("due_at"),
-    )
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        result = await _create_task_internal(
+            uid=uid,
+            app_key=app_key,
+            integration=integration,
+            title=action_item["description"],
+            due_date=action_item.get("due_at"),
+            client=client,
+        )
 
     if result.get("success"):
         # Mark action item as exported
@@ -114,5 +121,5 @@ async def auto_sync_action_items_batch(uid: str, action_items: list) -> list:
         return results
 
     except Exception as e:
-        print(f"Auto-sync batch failed for user {uid}: {e}")
+        logger.error(f"Auto-sync batch failed for user {uid}: {e}")
         return [{"synced": False, "error": str(e)}] * len(action_items)

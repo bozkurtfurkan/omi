@@ -57,6 +57,7 @@ from database.redis_db import (
     decrease_app_installs_count,
     enable_app,
     disable_app,
+    is_app_enabled,
     delete_app_cache_by_id,
     is_username_taken,
     save_username,
@@ -105,6 +106,7 @@ from database.memories import migrate_memories
 
 from utils.llm.persona import generate_persona_intro_message
 from utils.llm.app_generator import generate_description
+from utils.llm.usage_tracker import track_usage, Features
 from utils.notifications import send_notification, send_app_review_reply_notification, send_new_app_review_notification
 from utils.other import endpoints as auth
 from models.app import App, ActionType, AppCreate, AppUpdate, AppBaseModel
@@ -115,6 +117,9 @@ from utils.social import (
     upsert_persona_from_twitter_profile,
     add_twitter_to_persona,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -1113,7 +1118,8 @@ def generate_description_endpoint(data: dict, uid: str = Depends(auth.get_curren
         raise HTTPException(status_code=422, detail='App Name is required')
     if data['description'] == '':
         raise HTTPException(status_code=422, detail='App Description is required')
-    desc = generate_description(data['name'], data['description'])
+    with track_usage(uid, Features.APP_GENERATOR):
+        desc = generate_description(data['name'], data['description'])
     return {
         'description': desc,
     }
@@ -1132,7 +1138,8 @@ def generate_description_and_emoji_endpoint(data: dict, uid: str = Depends(auth.
     if not data.get('prompt'):
         raise HTTPException(status_code=422, detail='App Prompt is required')
 
-    result = generate_description_and_emoji(data['name'], data['prompt'])
+    with track_usage(uid, Features.APP_GENERATOR):
+        result = generate_description_and_emoji(data['name'], data['prompt'])
     return result
 
 
@@ -1167,12 +1174,13 @@ First 3 should be conversation-based, last 2 should be chat-based.
 Be creative, fun, and varied. No generic ideas."""
 
     try:
-        response = await llm_mini.ainvoke(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": "Generate 5 creative app ideas now"},
-            ]
-        )
+        with track_usage(uid, Features.APP_GENERATOR):
+            response = await llm_mini.ainvoke(
+                [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": "Generate 5 creative app ideas now"},
+                ]
+            )
 
         content = response.content.strip()
 
@@ -1197,7 +1205,7 @@ Be creative, fun, and varied. No generic ideas."""
                 ]
             }
     except Exception as e:
-        print(f"Error generating prompts: {e}")
+        logger.error(f"Error generating prompts: {e}")
         return {
             "prompts": [
                 "Mind map generator from conversations",
@@ -1229,7 +1237,8 @@ async def generate_app_endpoint(data: dict, uid: str = Depends(auth.get_current_
 
     try:
         # Generate app configuration using LLM
-        generated_app = await generate_app_from_prompt(prompt)
+        with track_usage(uid, Features.APP_GENERATOR):
+            generated_app = await generate_app_from_prompt(prompt)
 
         return {
             'status': 'ok',
@@ -1243,7 +1252,7 @@ async def generate_app_endpoint(data: dict, uid: str = Depends(auth.get_current_
             },
         }
     except Exception as e:
-        print(f"Error generating app: {e}")
+        logger.error(f"Error generating app: {e}")
         raise HTTPException(status_code=500, detail=f'Failed to generate app: {str(e)}')
 
 
@@ -1268,14 +1277,15 @@ async def generate_app_icon_endpoint(data: dict, uid: str = Depends(auth.get_cur
 
     try:
         # Generate icon using DALL-E
-        icon_bytes = await generate_app_icon(app_name, app_description, category)
+        with track_usage(uid, Features.APP_GENERATOR):
+            icon_bytes = await generate_app_icon(app_name, app_description, category)
 
         # Return as base64
         icon_base64 = base64.b64encode(icon_bytes).decode('utf-8')
 
         return {'status': 'ok', 'icon_base64': icon_base64, 'mime_type': 'image/png'}
     except Exception as e:
-        print(f"Error generating icon: {e}")
+        logger.error(f"Error generating icon: {e}")
         raise HTTPException(status_code=500, detail=f'Failed to generate icon: {str(e)}')
 
 
@@ -1354,7 +1364,8 @@ async def verify_twitter_ownership_tweet(
 async def get_twitter_initial_message(username: str, uid: str = Depends(auth.get_current_user_uid)):
     persona = get_persona_by_username_db(username)
     if persona:
-        message = generate_persona_intro_message(persona['persona_prompt'], persona['name'])
+        with track_usage(uid, Features.PERSONA):
+            message = generate_persona_intro_message(persona['persona_prompt'], persona['name'])
         return {'message': message}
     return {'message': ''}
 
@@ -1392,7 +1403,7 @@ async def update_omi_persona_connected_accounts(uid: str):
                 update_app_in_db(update_data)
                 delete_app_cache_by_id(persona['id'])
     except Exception as e:
-        print(f"Error updating persona connected accounts: {e}")
+        logger.error(f"Error updating persona connected accounts: {e}")
 
 
 # ******************************************************
@@ -1485,8 +1496,8 @@ async def add_mcp_server(data: McpServerRequest, uid: str = Depends(auth.get_cur
             scopes=oauth_meta.get('scopes_supported'),
             code_challenge=code_challenge,
         )
-        print(f"[MCP OAuth] client_id={client_info['client_id']}, redirect_uri={redirect_uri}")
-        print(f"[MCP OAuth] auth_url={auth_url}")
+        logger.info(f"[MCP OAuth] client_id={client_info['client_id']}, redirect_uri={redirect_uri}")
+        logger.info(f"[MCP OAuth] auth_url={auth_url}")
 
         # Create app in pending state (no tools yet)
         app_dict = {
@@ -1731,7 +1742,7 @@ def enable_app_endpoint(app_id: str, uid: str = Depends(auth.get_current_user_ui
             raise HTTPException(status_code=403, detail='You are not authorized to perform this action')
     if app.works_externally() and app.external_integration.setup_completed_url:
         res = requests.get(app.external_integration.setup_completed_url + f'?uid={uid}')
-        print('enable_app_endpoint', res.status_code, res.content)
+        logger.info(f'enable_app_endpoint {res.status_code} {res.content}')
         if res.status_code != 200 or not res.json().get('is_setup_completed', False):
             raise HTTPException(status_code=400, detail='App setup is not completed')
 
@@ -1747,17 +1758,18 @@ def enable_app_endpoint(app_id: str, uid: str = Depends(auth.get_current_user_ui
 
 @router.post('/v1/apps/disable')
 def disable_app_endpoint(app_id: str, uid: str = Depends(auth.get_current_user_uid)):
-    app = get_available_app_by_id(app_id, uid)
-    app = App(**app) if app else None
-    if not app:
-        raise HTTPException(status_code=404, detail='App not found')
-    if app.private is None:
-        if app.private and app.uid != uid and not is_tester(uid):
-            raise HTTPException(status_code=403, detail='You are not authorized to perform this action')
-    disable_app(uid, app_id)
-    if (app.private is None or not app.private) and (app.uid is None or app.uid != uid) and not is_tester(uid):
-        decrease_app_installs_count(app_id)
-    return {'status': 'ok'}
+    # Allow users to always disable apps they have installed, even if the app
+    # was made private after installation (see issue #4886).
+    if is_app_enabled(uid, app_id):
+        disable_app(uid, app_id)
+        app = get_available_app_by_id(app_id, uid)
+        if app:
+            app = App(**app)
+            if (app.private is None or not app.private) and (app.uid is None or app.uid != uid) and not is_tester(uid):
+                decrease_app_installs_count(app_id)
+        return {'status': 'ok'}
+
+    raise HTTPException(status_code=404, detail='App not found')
 
 
 # ******************************************************
@@ -1910,7 +1922,7 @@ def get_personas(persona_id: str, secret_key: str = Header(...)):
     persona = get_personas_by_username_db(persona_id)
     if not persona:
         raise HTTPException(status_code=404, detail='Persona not found')
-    print(persona)
+    logger.info(persona)
     return persona
 
 
@@ -1971,7 +1983,7 @@ def get_summary_app_ids(secret_key: str = Header(...)):
         raise HTTPException(status_code=403, detail='Forbidden')
 
     app_ids = get_conversation_summary_app_ids()
-    print(app_ids)
+    logger.info(app_ids)
     return {'app_ids': app_ids or []}
 
 

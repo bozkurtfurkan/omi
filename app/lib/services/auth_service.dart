@@ -37,15 +37,14 @@ class AuthService {
     print('DEBUG_AUTH: Using standard Google Sign In for mobile');
 
     // Trigger the authentication flow
-    final GoogleSignInAccount? googleUser = await GoogleSignIn(
-      scopes: ['profile', 'email'],
-    ).signIn();
+    final GoogleSignInAccount? googleUser = await GoogleSignIn(scopes: ['profile', 'email']).signIn();
     print('DEBUG_AUTH: Google User: $googleUser');
 
     // Obtain the auth details from the request
     final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
     print(
-        'DEBUG_AUTH: Google Auth accessToken=${googleAuth?.accessToken != null}, idToken=${googleAuth?.idToken != null}');
+      'DEBUG_AUTH: Google Auth accessToken=${googleAuth?.accessToken != null}, idToken=${googleAuth?.idToken != null}',
+    );
     if (googleAuth == null) {
       print('DEBUG_AUTH: Failed - googleAuth is NULL');
       return null;
@@ -56,10 +55,7 @@ class AuthService {
       print('DEBUG_AUTH: Failed - accessToken and idToken are both NULL');
       return null;
     }
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+    final credential = GoogleAuthProvider.credential(accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
 
     // Once signed in, return the UserCredential
     try {
@@ -169,11 +165,22 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    _clearCachedAuth();
     await FirebaseAuth.instance.signOut();
+  }
+
+  void _clearCachedAuth() {
+    SharedPreferencesUtil().authToken = '';
+    SharedPreferencesUtil().tokenExpirationTime = 0;
   }
 
   Future<String?> getIdToken() async {
     try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        Logger.debug('getIdToken: currentUser is null, clearing cached token');
+        _clearCachedAuth();
+        return null;
+      }
       IdTokenResult? newToken = await FirebaseAuth.instance.currentUser?.getIdTokenResult(true);
       if (newToken?.token != null) {
         var user = FirebaseAuth.instance.currentUser!;
@@ -194,16 +201,12 @@ class AuthService {
         }
         return newToken?.token;
       }
-      // Fallback: use cached token if Firebase has no user (for dev builds)
-      final cachedToken = SharedPreferencesUtil().authToken;
-      if (cachedToken.isNotEmpty) {
-        print('DEBUG AuthService.getIdToken: Using cached token fallback');
-        return cachedToken;
-      }
+      Logger.debug('getIdToken: token refresh returned null');
       return null;
     } catch (e) {
-      Logger.debug(e.toString());
-      return SharedPreferencesUtil().authToken;
+      Logger.debug('getIdToken: token refresh failed: $e');
+      _clearCachedAuth();
+      return null;
     }
   }
 
@@ -217,7 +220,8 @@ class AuthService {
 
       Logger.debug('Starting OAuth flow for provider: $provider');
 
-      final authUrl = '${Env.apiBaseUrl}v1/auth/authorize'
+      final authUrl =
+          '${Env.apiBaseUrl}v1/auth/authorize'
           '?provider=$provider'
           '&redirect_uri=${Uri.encodeComponent(redirectUri)}'
           '&state=$state';
@@ -266,10 +270,7 @@ class AuthService {
       });
 
       // Now launch the URL
-      final launched = await launchUrl(
-        Uri.parse(authUrl),
-        mode: LaunchMode.externalApplication,
-      );
+      final launched = await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
 
       if (!launched) {
         linkSubscription.cancel();
@@ -326,9 +327,7 @@ class AuthService {
 
       final response = await http.post(
         Uri.parse('${Env.apiBaseUrl}v1/auth/token'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'grant_type': 'authorization_code',
           'code': code,
@@ -370,16 +369,10 @@ class AuthService {
     Logger.debug('Signing in with $provider OAuth credentials');
 
     if (provider == 'google') {
-      final credential = GoogleAuthProvider.credential(
-        idToken: idToken,
-        accessToken: accessToken,
-      );
+      final credential = GoogleAuthProvider.credential(idToken: idToken, accessToken: accessToken);
       return await FirebaseAuth.instance.signInWithCredential(credential);
     } else if (provider == 'apple') {
-      final credential = OAuthProvider('apple.com').credential(
-        idToken: idToken,
-        accessToken: accessToken,
-      );
+      final credential = OAuthProvider('apple.com').credential(idToken: idToken, accessToken: accessToken);
       return await FirebaseAuth.instance.signInWithCredential(credential);
     } else {
       throw Exception('Unsupported provider: $provider');
@@ -484,7 +477,8 @@ class AuthService {
           SharedPreferencesUtil().hasSetPrimaryLanguage = true;
         }
         print(
-            'DEBUG _restoreOnboardingState: done, onboardingCompleted=${SharedPreferencesUtil().onboardingCompleted}');
+          'DEBUG _restoreOnboardingState: done, onboardingCompleted=${SharedPreferencesUtil().onboardingCompleted}',
+        );
       }
     } catch (e) {
       print('DEBUG _restoreOnboardingState: error=$e');
@@ -520,13 +514,15 @@ class AuthService {
             Logger.debug('Desktop/Web platform detected - attempting updateProfile with caution');
 
             // Try with a timeout to prevent hanging
-            await user.updateProfile(displayName: fullName).timeout(
-              const Duration(seconds: 5),
-              onTimeout: () {
-                Logger.debug('updateProfile timed out on desktop platform');
-                throw TimeoutException('updateProfile timed out', const Duration(seconds: 5));
-              },
-            );
+            await user
+                .updateProfile(displayName: fullName)
+                .timeout(
+                  const Duration(seconds: 5),
+                  onTimeout: () {
+                    Logger.debug('updateProfile timed out on desktop platform');
+                    throw TimeoutException('updateProfile timed out', const Duration(seconds: 5));
+                  },
+                );
           } else {
             await user.updateProfile(displayName: fullName);
           }
@@ -573,17 +569,15 @@ class AuthService {
 
       Logger.debug('Starting OAuth linking flow for provider: $provider');
 
-      final authUrl = '${Env.apiBaseUrl}v1/auth/authorize'
+      final authUrl =
+          '${Env.apiBaseUrl}v1/auth/authorize'
           '?provider=$provider'
           '&redirect_uri=${Uri.encodeComponent(redirectUri)}'
           '&state=$state';
 
       Logger.debug('Authorization URL: $authUrl');
 
-      final launched = await launchUrl(
-        Uri.parse(authUrl),
-        mode: LaunchMode.externalApplication,
-      );
+      final launched = await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
 
       if (!launched) {
         throw Exception('Failed to launch authentication URL');
@@ -668,15 +662,9 @@ class AuthService {
     final accessToken = oauthCredentials['access_token'];
 
     if (provider == 'google') {
-      return GoogleAuthProvider.credential(
-        idToken: idToken,
-        accessToken: accessToken,
-      );
+      return GoogleAuthProvider.credential(idToken: idToken, accessToken: accessToken);
     } else if (provider == 'apple') {
-      return OAuthProvider('apple.com').credential(
-        idToken: idToken,
-        accessToken: accessToken,
-      );
+      return OAuthProvider('apple.com').credential(idToken: idToken, accessToken: accessToken);
     } else {
       throw Exception('Unsupported provider: $provider');
     }

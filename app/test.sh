@@ -39,11 +39,18 @@ if [[ ${#missing_files[@]} -gt 0 ]]; then
   echo "API_BASE_URL=https://api.omiapi.com/" > .dev.env
   echo "USE_WEB_AUTH=true" >> .dev.env
   echo "USE_AUTH_CUSTOM_TOKEN=true" >> .dev.env
+  echo "STAGING_API_URL=" >> .dev.env
 
   flutter pub get
   dart run build_runner build --delete-conflicting-outputs
 fi
 
 flutter test test/providers/capture_provider_test.dart
+flutter test test/widgets/transcription_paused_warning_test.dart
 flutter test test/widgets/transcript_test.dart
 flutter test test/unit/audio_player_utils_test.dart
+flutter test test/unit/get_tag_test.dart
+flutter test test/unit/env_test.dart
+flutter test test/unit/testflight_preferences_test.dart
+flutter test test/unit/multipart_401_retry_test.dart
+flutter test test/unit/token_refresh_loop_test.dart

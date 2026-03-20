@@ -8,6 +8,14 @@ struct FloatingChatExchange: Identifiable {
     let aiMessage: ChatMessage
 }
 
+/// A custom in-app notification rendered directly below the floating bar.
+struct FloatingBarNotification: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let assistantId: String
+}
+
 /// Observable object holding the state for the floating control bar.
 @MainActor
 class FloatingControlBarState: NSObject, ObservableObject {
@@ -15,6 +23,8 @@ class FloatingControlBarState: NSObject, ObservableObject {
     @Published var duration: Int = 0
     @Published var isInitialising: Bool = false
     @Published var isDragging: Bool = false
+    @Published var isHoveringBar: Bool = false
+    @Published var currentNotification: FloatingBarNotification? = nil
 
     // AI conversation state
     @Published var showingAIConversation: Bool = false
@@ -24,7 +34,7 @@ class FloatingControlBarState: NSObject, ObservableObject {
     @Published var currentAIMessage: ChatMessage? = nil
     @Published var displayedQuery: String = ""
     @Published var inputViewHeight: CGFloat = 120
-    @Published var screenshotURL: URL? = nil
+    @Published var responseContentHeight: CGFloat = 0
     @Published var chatHistory: [FloatingChatExchange] = []
 
     /// Convenience accessor for plain-text response (used by window geometry and error handling).
@@ -56,4 +66,8 @@ class FloatingControlBarState: NSObject, ObservableObject {
         ("claude-sonnet-4-6", "Sonnet"),
         ("claude-opus-4-6", "Opus"),
     ]
+
+    var isShowingNotification: Bool {
+        currentNotification != nil
+    }
 }

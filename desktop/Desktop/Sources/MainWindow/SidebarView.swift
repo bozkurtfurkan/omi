@@ -20,7 +20,7 @@ enum SidebarNavItem: Int, CaseIterable {
         switch self {
         case .dashboard: return "Dashboard"
         case .conversations: return "Conversations"
-        case .chat: return "AI chat"
+        case .chat: return "Chat"
         case .memories: return "Memories"
         case .tasks: return "Tasks"
         case .focus: return "Focus"
@@ -88,15 +88,13 @@ struct SidebarView: View {
     // Tier gating (0 = show all, 1-6 = sequential tiers)
     @AppStorage("currentTierLevel") private var currentTierLevel = 0
 
-    // Track newly unlocked items for animation (persisted so it survives settings navigation)
-    @State private var newlyUnlockedItems: Set<SidebarNavItem> = []
-    @AppStorage("lastSeenTierLevel") private var lastSeenTierLevel = 0
-
     // Toggle states for quick controls
     @AppStorage("screenAnalysisEnabled") private var screenAnalysisEnabled = true
     @State private var isMonitoring = false
     @State private var isTogglingMonitoring = false
     @State private var isTogglingTranscription = false
+    @State private var monitoringAutoRestartAttempts = 0
+    private let maxAutoRestartAttempts = 3
 
     // Page loading states (show spinner in place of icon)
     @State private var isRewindPageLoading = false
@@ -197,7 +195,7 @@ struct SidebarView: View {
                                     isSelected: selectedIndex == item.rawValue,
                                     isCollapsed: isCollapsed,
                                     iconWidth: iconWidth,
-                                    isOn: isMonitoring && appState.isTranscribing,
+                                    isOn: isMonitoring || appState.isTranscribing,
                                     isToggling: isTogglingMonitoring,
                                     isPageLoading: isRewindPageLoading,
                                     onTap: {
@@ -217,9 +215,9 @@ struct SidebarView: View {
                                         AnalyticsManager.shared.tabChanged(tabName: item.title)
                                     },
                                     onToggle: {
-                                        // Use combined state so toggle matches what's displayed
-                                        let isFullyOn = isMonitoring && appState.isTranscribing
-                                        toggleMonitoring(enabled: !isFullyOn)
+                                        // Toggle both — on if either is off, off if both are on
+                                        let isAnyOn = isMonitoring || appState.isTranscribing
+                                        toggleMonitoring(enabled: !isAnyOn)
                                     },
                                     showRewindIcon: true
                                 )
@@ -260,11 +258,7 @@ struct SidebarView: View {
                                 )
                             }
                         }
-                        .overlay(
-                            TierUnlockCelebration(isActive: newlyUnlockedItems.contains(item))
-                        )
                     }
-                    .animation(.easeOut(duration: 0.4), value: currentTierLevel)
 
                     Spacer()
 
@@ -284,10 +278,10 @@ struct SidebarView: View {
                     }
 
                     // Update available widget
-                    if updaterViewModel.updateAvailable {
+                    if updaterViewModel.updateAvailable || updaterViewModel.updateSessionInProgress {
                         Spacer().frame(height: 12)
                         updateAvailableWidget
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            .transition(.opacity)
                     }
 
                     Spacer().frame(height: 16)
@@ -319,18 +313,14 @@ struct SidebarView: View {
                         )
                     }
 
-                    // Help from Founder - navigates to Crisp chat page
-                    NavItemView(
-                        icon: SidebarNavItem.help.icon,
-                        label: SidebarNavItem.help.title,
-                        isSelected: selectedIndex == SidebarNavItem.help.rawValue,
+                    BottomNavItemView(
+                        icon: "message.fill",
+                        label: "Discord",
                         isCollapsed: isCollapsed,
                         iconWidth: iconWidth,
-                        badge: crispManager.unreadCount,
                         onTap: {
-                            selectedIndex = SidebarNavItem.help.rawValue
-                            crispManager.markAsRead()
-                            AnalyticsManager.shared.tabChanged(tabName: SidebarNavItem.help.title)
+                            guard let url = URL(string: "https://discord.com/invite/8MP3b9ymvx") else { return }
+                            NSWorkspace.shared.open(url)
                         }
                     )
 
@@ -392,8 +382,6 @@ struct SidebarView: View {
         .onAppear {
             syncMonitoringState()
             appState.checkAllPermissions()
-            // Check if tier changed while sidebar wasn't visible (e.g. changed in settings, or auto-upgraded on launch)
-            checkForDeferredUnlockAnimation()
         }
         .onChange(of: currentTierLevel) { _, newTier in
             // Redirect if current page became locked after tier change
@@ -402,10 +390,6 @@ struct SidebarView: View {
                selectedIndex != SidebarNavItem.settings.rawValue && selectedIndex != SidebarNavItem.permissions.rawValue && selectedIndex != SidebarNavItem.device.rawValue && selectedIndex != SidebarNavItem.help.rawValue {
                 selectedIndex = SidebarNavItem.dashboard.rawValue
             }
-            // If sidebar is currently visible (not in settings), play animation immediately
-            if selectedIndex != SidebarNavItem.settings.rawValue {
-                checkForDeferredUnlockAnimation()
-            }
         }
         .onChange(of: selectedIndex) { _, _ in
             // Check tier eligibility on page navigation (at most once per day)
@@ -413,8 +397,31 @@ struct SidebarView: View {
                 await TierManager.shared.checkTierIfNeeded()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .assistantMonitoringStateDidChange)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .assistantMonitoringStateDidChange)) { notification in
             syncMonitoringState()
+            let isNowMonitoring = (notification.userInfo?["isMonitoring"] as? Bool) ?? ProactiveAssistantsPlugin.shared.isMonitoring
+            if isNowMonitoring {
+                // Reset retry counter on successful start
+                monitoringAutoRestartAttempts = 0
+            } else if screenAnalysisEnabled && !isTogglingMonitoring && monitoringAutoRestartAttempts < maxAutoRestartAttempts {
+                // Auto-restart: monitoring stopped but user's setting says it should be on.
+                // Try to restart after a delay (handles transient failures, sleep/wake, etc.)
+                monitoringAutoRestartAttempts += 1
+                let attempt = monitoringAutoRestartAttempts
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    let plugin = ProactiveAssistantsPlugin.shared
+                    guard !plugin.isMonitoring && screenAnalysisEnabled else { return }
+                    plugin.refreshScreenRecordingPermission()
+                    if plugin.hasScreenRecordingPermission {
+                        log("SidebarView: Auto-restarting monitoring (attempt \(attempt)/\(maxAutoRestartAttempts))")
+                        plugin.startMonitoring { success, _ in
+                            if !success {
+                                log("SidebarView: Auto-restart attempt \(attempt) failed")
+                            }
+                        }
+                    }
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             // Refresh permissions when app becomes active (user may have changed them in System Settings)
@@ -444,7 +451,8 @@ struct SidebarView: View {
     private var headerSection: some View {
         HStack(spacing: 12) {
             // Omi logo icon - using the herologo from Resources
-            if let logoImage = NSImage(contentsOf: Bundle.resourceBundle.url(forResource: "herologo", withExtension: "png")!) {
+            if let logoURL = Bundle.resourceBundle.url(forResource: "herologo", withExtension: "png"),
+               let logoImage = NSImage(contentsOf: logoURL) {
                 Image(nsImage: logoImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -459,7 +467,7 @@ struct SidebarView: View {
 
             if !isCollapsed {
                 // Brand name
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Omi")
+                Text(UpdateChannel.appDisplayName)
                     .scaledFont(size: 22, weight: .bold)
                     .foregroundColor(OmiColors.textPrimary)
                     .tracking(-0.5)
@@ -578,7 +586,7 @@ struct SidebarView: View {
                 if !isCollapsed {
                     // Text content
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Get Omi Device")
+                        Text("Get omi Device")
                             .scaledFont(size: 13, weight: .semibold)
                             .foregroundColor(OmiColors.textPrimary)
 
@@ -615,29 +623,39 @@ struct SidebarView: View {
             )
         }
         .buttonStyle(.plain)
-        .help(isCollapsed ? "Get Omi Device" : "")
+        .help(isCollapsed ? "Get omi Device" : "")
     }
 
     // MARK: - Update Available Widget
     @State private var updateGlowAnimating = false
 
     private var updateAvailableWidget: some View {
-        Button(action: {
-            updaterViewModel.checkForUpdates()
+        let isDownloading = updaterViewModel.updateSessionInProgress
+
+        return Button(action: {
+            if updaterViewModel.canCheckForUpdates {
+                updaterViewModel.checkForUpdates()
+            }
         }) {
             HStack(spacing: 12) {
-                Image(systemName: "arrow.down.circle.fill")
-                    .scaledFont(size: 17)
-                    .foregroundColor(.white)
-                    .frame(width: iconWidth)
+                if isDownloading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: iconWidth)
+                } else {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .scaledFont(size: 17)
+                        .foregroundColor(.white)
+                        .frame(width: iconWidth)
+                }
 
                 if !isCollapsed {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Update Available")
+                        Text(isDownloading ? "Downloading Update…" : "Update Available")
                             .scaledFont(size: 13, weight: .semibold)
                             .foregroundColor(.white)
 
-                        if !updaterViewModel.availableVersion.isEmpty {
+                        if !isDownloading, !updaterViewModel.availableVersion.isEmpty {
                             Text("v\(updaterViewModel.availableVersion)")
                                 .scaledFont(size: 11)
                                 .foregroundColor(.white.opacity(0.8))
@@ -646,9 +664,11 @@ struct SidebarView: View {
 
                     Spacer()
 
-                    Image(systemName: "chevron.right")
-                        .scaledFont(size: 12)
-                        .foregroundColor(.white.opacity(0.7))
+                    if !isDownloading {
+                        Image(systemName: "chevron.right")
+                            .scaledFont(size: 12)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
                 }
             }
             .padding(.horizontal, 12)
@@ -660,7 +680,7 @@ struct SidebarView: View {
             .shadow(color: OmiColors.purplePrimary.opacity(updateGlowAnimating ? 0.7 : 0.3), radius: 8)
         }
         .buttonStyle(.plain)
-        .help(isCollapsed ? "Update Available — click to install" : "")
+        .help(isCollapsed ? (isDownloading ? "Downloading update…" : "Update Available — click to install") : "")
         .onAppear {
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                 updateGlowAnimating = true
@@ -788,7 +808,8 @@ struct SidebarView: View {
         VStack(spacing: 6) {
             // Screen Recording permission (primary for Rewind)
             // Also show if ScreenCaptureKit is broken (TCC says yes but SCK says no)
-            if !appState.hasScreenRecordingPermission || appState.isScreenCaptureKitBroken {
+            // or if permission is stale (developer signing changed)
+            if !appState.hasScreenRecordingPermission || appState.isScreenCaptureKitBroken || appState.isScreenRecordingStale {
                 screenRecordingPermissionRow
             }
 
@@ -830,18 +851,19 @@ struct SidebarView: View {
     private var screenRecordingPermissionRow: some View {
         let isDenied = appState.isScreenRecordingPermissionDenied()
         let isBroken = appState.isScreenCaptureKitBroken  // TCC yes but SCK no
-        let needsReset = isBroken  // Show reset when broken
-        let color: Color = (isDenied || isBroken) ? .red : OmiColors.warning
+        let isStale = appState.isScreenRecordingStale  // Developer signing changed
+        let needsReset = isBroken  // Show reset when broken (not stale — stale needs toggle off/on)
+        let color: Color = (isDenied || isBroken || isStale) ? .red : OmiColors.warning
 
         return HStack(spacing: 8) {
-            Image(systemName: (isDenied || isBroken) ? "rectangle.on.rectangle.slash" : "rectangle.on.rectangle")
+            Image(systemName: (isDenied || isBroken || isStale) ? "rectangle.on.rectangle.slash" : "rectangle.on.rectangle")
                 .scaledFont(size: 15)
                 .foregroundColor(color)
                 .frame(width: iconWidth)
-                .scaleEffect(permissionPulse && (isDenied || isBroken) ? 1.1 : 1.0)
+                .scaleEffect(permissionPulse && (isDenied || isBroken || isStale) ? 1.1 : 1.0)
 
             if !isCollapsed {
-                Text(isBroken ? "Screen Recording (Reset Required)" : "Screen Recording")
+                Text("Screen Recording")
                     .scaledFont(size: 13, weight: .medium)
                     .foregroundColor(color)
                     .lineLimit(1)
@@ -849,19 +871,26 @@ struct SidebarView: View {
                 Spacer()
 
                 Button(action: {
-                    if needsReset {
+                    if isStale {
+                        // Stale/corrupted TCC — navigate to Permissions page with full instructions
+                        selectedIndex = SidebarNavItem.permissions.rawValue
+                    } else if needsReset {
                         // Track reset button click
                         AnalyticsManager.shared.screenCaptureResetClicked(source: "sidebar_button")
                         // Reset and restart to fix broken ScreenCaptureKit state
                         ScreenCaptureService.resetScreenCapturePermissionAndRestart()
                     } else {
-                        // Request both traditional TCC and ScreenCaptureKit permissions
-                        ScreenCaptureService.requestAllScreenCapturePermissions()
-                        // Also open settings for manual grant if needed
+                        // Open Settings FIRST so it's visible before system dialog steals focus
                         ScreenCaptureService.openScreenRecordingPreferences()
+                        // Then request permissions (may show system dialog)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            ScreenCaptureService.requestAllScreenCapturePermissions()
+                        }
+                        // Track attempt — if still not granted on next check, show recovery instructions
+                        appState.screenRecordingGrantAttempts += 1
                     }
                 }) {
-                    Text(needsReset ? "Reset" : "Grant")
+                    Text(isStale ? "Fix" : (needsReset ? "Reset" : "Grant"))
                         .scaledFont(size: 11, weight: .semibold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
@@ -878,13 +907,13 @@ struct SidebarView: View {
         .padding(.vertical, 9)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(color.opacity(permissionPulse && (isDenied || isBroken) ? 0.25 : 0.15))
+                .fill(color.opacity(permissionPulse && (isDenied || isBroken || isStale) ? 0.25 : 0.15))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(color.opacity(0.3), lineWidth: (isDenied || isBroken) ? 2 : 1)
+                        .stroke(color.opacity(0.3), lineWidth: (isDenied || isBroken || isStale) ? 2 : 1)
                 )
         )
-        .help(isCollapsed ? (isBroken ? "Screen Recording needs reset" : "Screen Recording permission required") : "")
+        .help(isCollapsed ? (isStale ? "Screen Recording needs re-enabling" : (isBroken ? "Screen Recording needs reset" : "Screen Recording permission required")) : "")
     }
 
     private var microphonePermissionRow: some View {
@@ -1016,7 +1045,7 @@ struct SidebarView: View {
                 .scaleEffect(permissionPulse && (isDenied || isBroken) ? 1.1 : 1.0)
 
             if !isCollapsed {
-                Text(isBroken ? "Accessibility (Reset Required)" : "Accessibility")
+                Text("Accessibility")
                     .scaledFont(size: 13, weight: .medium)
                     .foregroundColor(color)
                     .lineLimit(1)
@@ -1095,9 +1124,11 @@ struct SidebarView: View {
 
         if enabled && !ProactiveAssistantsPlugin.shared.hasScreenRecordingPermission {
             isMonitoring = false
-            // Request both traditional TCC and ScreenCaptureKit permissions
-            ScreenCaptureService.requestAllScreenCapturePermissions()
+            // Open Settings FIRST, then request permissions after a delay
             ProactiveAssistantsPlugin.shared.openScreenRecordingPreferences()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                ScreenCaptureService.requestAllScreenCapturePermissions()
+            }
             return
         }
 
@@ -1111,13 +1142,6 @@ struct SidebarView: View {
         // Persist the setting
         screenAnalysisEnabled = enabled
         AssistantSettings.shared.screenAnalysisEnabled = enabled
-
-        // Also toggle audio transcription to match (Rewind bundles both)
-        if enabled && !appState.isTranscribing {
-            appState.startTranscription()
-        } else if !enabled && appState.isTranscribing {
-            appState.stopTranscription()
-        }
 
         if enabled {
             ProactiveAssistantsPlugin.shared.startMonitoring { success, _ in
@@ -1143,11 +1167,8 @@ struct SidebarView: View {
     private func syncMonitoringState() {
         let pluginState = ProactiveAssistantsPlugin.shared.isMonitoring
         isMonitoring = pluginState
-        // Keep persistent setting in sync when monitoring stops due to errors
-        if !pluginState && screenAnalysisEnabled {
-            screenAnalysisEnabled = false
-            AssistantSettings.shared.screenAnalysisEnabled = false
-        }
+        // Don't touch screenAnalysisEnabled here — it represents the user's preference,
+        // not the current monitoring state. Auto-restart below will handle recovery.
     }
 
     // MARK: - Page Loading Helpers
@@ -1174,33 +1195,6 @@ struct SidebarView: View {
 
     // MARK: - Tier Unlock Animation
 
-    /// Compare lastSeenTierLevel to currentTierLevel and animate any newly visible items.
-    /// Called on onAppear (returning from settings) and onChange when sidebar is visible.
-    private func checkForDeferredUnlockAnimation() {
-        guard lastSeenTierLevel != currentTierLevel else { return }
-
-        let oldVisible = Self.visibleItems(for: lastSeenTierLevel)
-        let newVisible = Self.visibleItems(for: currentTierLevel)
-        let unlocked = Set(newVisible).subtracting(Set(oldVisible))
-
-        // Update lastSeen immediately so we don't re-trigger
-        lastSeenTierLevel = currentTierLevel
-
-        guard !unlocked.isEmpty else { return }
-
-        // Small delay so the sidebar has time to render before animating
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.easeOut(duration: 0.4)) {
-                newlyUnlockedItems = unlocked
-            }
-            // Clear after full celebration plays (highlight 0.3s + confetti 1.5s + text 1.5s + buffer)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                withAnimation(.easeOut(duration: 0.5)) {
-                    newlyUnlockedItems = []
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Nav Item View
@@ -1312,6 +1306,9 @@ struct NavItemView: View {
         }
         .padding(.bottom, 2)
         .help(isCollapsed ? label : "")
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("sidebar_\(label.lowercased().replacingOccurrences(of: " ", with: "_"))")
     }
 
     /// Lock icon that reacts on hover and unlocks on click
@@ -1438,6 +1435,9 @@ struct NavItemWithStatusView: View {
         }
         .padding(.bottom, 2)
         .help(isCollapsed ? "\(label) (\(isOn ? "On" : "Off")) - Click icon to toggle" : "Click icon to toggle")
+        .accessibilityLabel("\(label) (\(isOn ? "On" : "Off"))")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("sidebar_\(label.lowercased().replacingOccurrences(of: " ", with: "_"))")
     }
 }
 
@@ -1523,9 +1523,11 @@ private struct SidebarAudioBar: View {
         let variation = 1.0 - (centerOffset * 0.3)
 
         let scaledLevel = clampedLevel * variation
-        let randomVariation = CGFloat.random(in: 0.9...1.1)
+        // Deterministic per-bar variation (avoid CGFloat.random which causes layout churn)
+        let hash = sin(CGFloat(index) * 1.618 + 0.5)
+        let deterministicVariation = 0.9 + 0.2 * (hash * 0.5 + 0.5)
 
-        let height = minHeight + (maxHeight - minHeight) * scaledLevel * randomVariation
+        let height = minHeight + (maxHeight - minHeight) * scaledLevel * deterministicVariation
         return max(minHeight, min(maxHeight, height))
     }
 
@@ -1547,7 +1549,6 @@ private struct SidebarAudioBar: View {
         RoundedRectangle(cornerRadius: 1)
             .fill(barColor)
             .frame(width: barWidth, height: barHeight)
-            .animation(.easeOut(duration: 0.08), value: level)
     }
 }
 
@@ -1598,149 +1599,6 @@ struct SidebarRewindIcon: View {
     }
 }
 
-// MARK: - Tier Unlock Celebration
-/// Multi-phase celebration overlay: highlight → confetti → glowing text
-struct TierUnlockCelebration: View {
-    let isActive: Bool
-
-    @State private var phase: CelebrationPhase = .idle
-
-    enum CelebrationPhase {
-        case idle, highlight, confetti, text, done
-    }
-
-    var body: some View {
-        ZStack {
-            // Phase 1: Purple highlight border
-            if phase == .highlight || phase == .confetti || phase == .text {
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(OmiColors.purplePrimary, lineWidth: phase == .highlight ? 2.5 : 1.5)
-                    .shadow(color: OmiColors.purplePrimary.opacity(phase == .highlight ? 0.8 : 0.3), radius: phase == .highlight ? 12 : 4)
-                    .transition(.opacity)
-            }
-
-            // Phase 2: Confetti particles
-            if phase == .confetti || phase == .text {
-                ConfettiView()
-                    .allowsHitTesting(false)
-                    .transition(.opacity)
-            }
-
-            // Phase 3: Glowing "Unlocked!" text
-            if phase == .text {
-                Text("Unlocked!")
-                    .scaledFont(size: 11, weight: .bold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(OmiColors.purplePrimary)
-                            .shadow(color: OmiColors.purplePrimary.opacity(0.8), radius: 8)
-                    )
-                    .transition(.scale(scale: 0.5).combined(with: .opacity))
-                    .offset(x: 30, y: -8)
-            }
-        }
-        .onChange(of: isActive) { _, active in
-            if active {
-                startCelebration()
-            } else {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    phase = .idle
-                }
-            }
-        }
-    }
-
-    private func startCelebration() {
-        // Phase 1: Highlight (immediate)
-        withAnimation(.easeOut(duration: 0.3)) {
-            phase = .highlight
-        }
-        // Phase 2: Confetti (after 0.4s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            withAnimation(.easeOut(duration: 0.3)) {
-                phase = .confetti
-            }
-        }
-        // Phase 3: Text (after 1.0s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                phase = .text
-            }
-        }
-    }
-}
-
-// MARK: - Confetti View
-/// Burst of small colored particles that animate outward from center
-struct ConfettiView: View {
-    @State private var animate = false
-    @State private var fadeOut = false
-
-    // Pre-computed particle configs (fixed set for reliable animation)
-    private let particleConfigs: [(color: Color, size: CGFloat, angle: Double, distance: CGFloat, rotation: Double, isRect: Bool)] = {
-        let colors: [Color] = [
-            OmiColors.purplePrimary, OmiColors.purplePrimary.opacity(0.7),
-            .yellow, .green, .pink, .cyan, .orange, .mint, .indigo
-        ]
-        return (0..<18).map { _ in
-            (
-                color: colors.randomElement()!,
-                size: CGFloat.random(in: 3...6),
-                angle: Double.random(in: 0...(2 * .pi)),
-                distance: CGFloat.random(in: 40...120),
-                rotation: Double.random(in: 0...720),
-                isRect: Bool.random()
-            )
-        }
-    }()
-
-    var body: some View {
-        GeometryReader { geo in
-            let cx = geo.size.width / 2
-            let cy = geo.size.height / 2
-
-            ZStack {
-                ForEach(0..<particleConfigs.count, id: \.self) { i in
-                    let p = particleConfigs[i]
-                    Group {
-                        if p.isRect {
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(p.color)
-                        } else {
-                            Circle()
-                                .fill(p.color)
-                        }
-                    }
-                    .frame(width: p.size, height: p.size * (p.isRect ? 2 : 1))
-                    .rotationEffect(.degrees(animate ? p.rotation : 0))
-                    .offset(
-                        x: animate ? cos(p.angle) * p.distance : 0,
-                        y: animate ? sin(p.angle) * p.distance - 20 : 0
-                    )
-                    .scaleEffect(animate ? (fadeOut ? 0.1 : 1.0) : 0.1)
-                    .opacity(fadeOut ? 0 : 1)
-                    .position(x: cx, y: cy)
-                }
-            }
-        }
-        .onAppear {
-            // Burst outward
-            withAnimation(.easeOut(duration: 0.7)) {
-                animate = true
-            }
-            // Fade out
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                withAnimation(.easeOut(duration: 0.5)) {
-                    fadeOut = true
-                }
-            }
-        }
-    }
-}
-
 // MARK: - Bottom Nav Item View
 struct BottomNavItemView: View {
     let icon: String
@@ -1782,6 +1640,9 @@ struct BottomNavItemView: View {
         }
         .padding(.bottom, 2)
         .help(isCollapsed ? label : "")
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("sidebar_\(label.lowercased().replacingOccurrences(of: " ", with: "_"))")
     }
 }
 

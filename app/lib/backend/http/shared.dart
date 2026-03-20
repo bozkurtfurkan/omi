@@ -25,9 +25,10 @@ Future<String> getAuthHeader() async {
   DateTime? expiry = DateTime.fromMillisecondsSinceEpoch(SharedPreferencesUtil().tokenExpirationTime);
   bool hasAuthToken = SharedPreferencesUtil().authToken.isNotEmpty;
 
-  bool isExpirationDateValid = !(expiry.isBefore(DateTime.now()) ||
-      expiry.isAtSameMomentAs(DateTime.fromMillisecondsSinceEpoch(0)) ||
-      (expiry.isBefore(DateTime.now().add(const Duration(minutes: 5))) && expiry.isAfter(DateTime.now())));
+  bool isExpirationDateValid =
+      !(expiry.isBefore(DateTime.now()) ||
+          expiry.isAtSameMomentAs(DateTime.fromMillisecondsSinceEpoch(0)) ||
+          (expiry.isBefore(DateTime.now().add(const Duration(minutes: 5))) && expiry.isAfter(DateTime.now())));
 
   if (!hasAuthToken || !isExpirationDateValid) {
     SharedPreferencesUtil().authToken = await AuthService.instance.getIdToken() ?? '';
@@ -66,6 +67,8 @@ Future<Map<String, String>> buildHeaders({
 }
 
 bool _isRequiredAuthCheck(String url) {
+  // Agent VM endpoints always hit prod even when app uses dev
+  if (url.contains('api.omi.me')) return true;
   if (url.contains(Env.apiBaseUrl!)) {
     return true;
   }
@@ -77,10 +80,7 @@ Future<http.StreamedResponse> makeRawApiCall({
   required String method,
   Map<String, String> headers = const {},
 }) async {
-  final builtHeaders = await buildHeaders(
-    requireAuthCheck: _isRequiredAuthCheck(url),
-    fromHeaders: headers,
-  );
+  final builtHeaders = await buildHeaders(requireAuthCheck: _isRequiredAuthCheck(url), fromHeaders: headers);
   var request = http.Request(method, Uri.parse(url));
   request.headers.addAll(builtHeaders);
   return HttpPoolManager.instance.sendStreaming(request);
@@ -96,10 +96,7 @@ Future<http.Response?> makeApiCall({
 }) async {
   try {
     final bool requireAuthCheck = _isRequiredAuthCheck(url);
-    Map<String, String> builtHeaders = await buildHeaders(
-      requireAuthCheck: requireAuthCheck,
-      fromHeaders: headers,
-    );
+    Map<String, String> builtHeaders = await buildHeaders(requireAuthCheck: requireAuthCheck, fromHeaders: headers);
 
     final effectiveTimeout =
         timeout ?? (method == 'GET' ? ApiClient.requestTimeoutRead : ApiClient.requestTimeoutWrite);
@@ -115,10 +112,7 @@ Future<http.Response?> makeApiCall({
       Logger.log('Token expired on 1st attempt');
       SharedPreferencesUtil().authToken = await AuthService.instance.getIdToken() ?? '';
       if (SharedPreferencesUtil().authToken.isNotEmpty) {
-        builtHeaders = await buildHeaders(
-          requireAuthCheck: requireAuthCheck,
-          fromHeaders: headers,
-        );
+        builtHeaders = await buildHeaders(requireAuthCheck: requireAuthCheck, fromHeaders: headers);
         response = await HttpPoolManager.instance.send(
           () => _buildRequest(url, builtHeaders, body, method),
           timeout: effectiveTimeout,
@@ -127,13 +121,19 @@ Future<http.Response?> makeApiCall({
         Logger.log('Token refreshed and request retried');
         if (response.statusCode == 401) {
           await AuthService.instance.signOut();
-          Logger.handle(Exception('Authentication failed. Please sign in again.'), StackTrace.current,
-              message: 'Authentication failed. Please sign in again.');
+          Logger.handle(
+            Exception('Authentication failed. Please sign in again.'),
+            StackTrace.current,
+            message: 'Authentication failed. Please sign in again.',
+          );
         }
       } else {
         await AuthService.instance.signOut();
-        Logger.handle(Exception('Authentication failed. Please sign in again.'), StackTrace.current,
-            message: 'Authentication failed. Please sign in again.');
+        Logger.handle(
+          Exception('Authentication failed. Please sign in again.'),
+          StackTrace.current,
+          message: 'Authentication failed. Please sign in again.',
+        );
       }
     }
 
@@ -145,18 +145,35 @@ Future<http.Response?> makeApiCall({
   }
 }
 
-http.Request _buildRequest(
-  String url,
-  Map<String, String> headers,
-  String body,
-  String method,
-) {
+http.Request _buildRequest(String url, Map<String, String> headers, String body, String method) {
   final request = http.Request(method, Uri.parse(url));
   request.headers.addAll(headers);
   if (method != 'GET' && body.isNotEmpty) {
     request.headers['Content-Type'] = 'application/json';
     request.body = body;
   }
+  return request;
+}
+
+Future<http.MultipartRequest> _buildMultipartRequest({
+  required String url,
+  required List<File> files,
+  required Map<String, String> headers,
+  required Map<String, String> fields,
+  required String fileFieldName,
+  required String method,
+}) async {
+  var request = http.MultipartRequest(method, Uri.parse(url));
+  request.headers.addAll(headers);
+  request.fields.addAll(fields);
+
+  for (var file in files) {
+    var stream = http.ByteStream(file.openRead());
+    var length = await file.length();
+    var multipartFile = http.MultipartFile(fileFieldName, stream, length, filename: basename(file.path));
+    request.files.add(multipartFile);
+  }
+
   return request;
 }
 
@@ -169,29 +186,56 @@ Future<http.Response> makeMultipartApiCall({
   String method = 'POST',
 }) async {
   try {
-    final builtHeaders = await buildHeaders(
-      requireAuthCheck: _isRequiredAuthCheck(url),
-      fromHeaders: headers,
+    final bool requireAuthCheck = _isRequiredAuthCheck(url);
+    Map<String, String> builtHeaders = await buildHeaders(requireAuthCheck: requireAuthCheck, fromHeaders: headers);
+
+    var request = await _buildMultipartRequest(
+      url: url,
+      files: files,
+      headers: builtHeaders,
+      fields: fields,
+      fileFieldName: fileFieldName,
+      method: method,
     );
 
-    var request = http.MultipartRequest(method, Uri.parse(url));
-    request.headers.addAll(builtHeaders);
-    request.fields.addAll(fields);
+    var streamedResponse = await HttpPoolManager.instance.sendStreaming(request);
+    var response = await http.Response.fromStream(streamedResponse);
 
-    for (var file in files) {
-      var stream = http.ByteStream(file.openRead());
-      var length = await file.length();
-      var multipartFile = http.MultipartFile(
-        fileFieldName,
-        stream,
-        length,
-        filename: basename(file.path),
-      );
-      request.files.add(multipartFile);
+    if (requireAuthCheck && response.statusCode == 401) {
+      Logger.log('Token expired on 1st multipart attempt');
+      SharedPreferencesUtil().authToken = await AuthService.instance.getIdToken() ?? '';
+      if (SharedPreferencesUtil().authToken.isNotEmpty) {
+        builtHeaders = await buildHeaders(requireAuthCheck: requireAuthCheck, fromHeaders: headers);
+        request = await _buildMultipartRequest(
+          url: url,
+          files: files,
+          headers: builtHeaders,
+          fields: fields,
+          fileFieldName: fileFieldName,
+          method: method,
+        );
+        streamedResponse = await HttpPoolManager.instance.sendStreaming(request);
+        response = await http.Response.fromStream(streamedResponse);
+        Logger.log('Token refreshed and multipart request retried');
+        if (response.statusCode == 401) {
+          await AuthService.instance.signOut();
+          Logger.handle(
+            Exception('Authentication failed. Please sign in again.'),
+            StackTrace.current,
+            message: 'Authentication failed. Please sign in again.',
+          );
+        }
+      } else {
+        await AuthService.instance.signOut();
+        Logger.handle(
+          Exception('Authentication failed. Please sign in again.'),
+          StackTrace.current,
+          message: 'Authentication failed. Please sign in again.',
+        );
+      }
     }
 
-    var streamedResponse = await HttpPoolManager.instance.sendStreaming(request);
-    return await http.Response.fromStream(streamedResponse);
+    return response;
   } catch (e, stackTrace) {
     Logger.debug('Multipart HTTP request failed: $e, $stackTrace');
     PlatformManager.instance.crashReporter.reportCrash(e, stackTrace, userAttributes: {'url': url, 'method': method});
@@ -206,10 +250,7 @@ Stream<String> makeStreamingApiCall({
   String method = 'POST',
 }) async* {
   try {
-    final builtHeaders = await buildHeaders(
-      requireAuthCheck: _isRequiredAuthCheck(url),
-      fromHeaders: headers,
-    );
+    final builtHeaders = await buildHeaders(requireAuthCheck: _isRequiredAuthCheck(url), fromHeaders: headers);
 
     var request = http.Request(method, Uri.parse(url));
     request.headers.addAll(builtHeaders);
@@ -265,20 +306,54 @@ Stream<String> makeMultipartStreamingApiCall({
   String fileFieldName = 'files',
 }) async* {
   try {
-    final builtHeaders = await buildHeaders(
-      requireAuthCheck: _isRequiredAuthCheck(url),
-      fromHeaders: headers,
+    final bool requireAuthCheck = _isRequiredAuthCheck(url);
+    Map<String, String> builtHeaders = await buildHeaders(requireAuthCheck: requireAuthCheck, fromHeaders: headers);
+
+    var request = await _buildMultipartRequest(
+      url: url,
+      files: files,
+      headers: builtHeaders,
+      fields: fields,
+      fileFieldName: fileFieldName,
+      method: 'POST',
     );
 
-    var request = http.MultipartRequest('POST', Uri.parse(url));
-    request.headers.addAll(builtHeaders);
-    request.fields.addAll(fields);
-
-    for (var file in files) {
-      request.files.add(await http.MultipartFile.fromPath(fileFieldName, file.path, filename: basename(file.path)));
-    }
-
     var response = await HttpPoolManager.instance.sendStreaming(request);
+
+    if (requireAuthCheck && response.statusCode == 401) {
+      Logger.log('Token expired on 1st multipart streaming attempt');
+      SharedPreferencesUtil().authToken = await AuthService.instance.getIdToken() ?? '';
+      if (SharedPreferencesUtil().authToken.isNotEmpty) {
+        builtHeaders = await buildHeaders(requireAuthCheck: requireAuthCheck, fromHeaders: headers);
+        request = await _buildMultipartRequest(
+          url: url,
+          files: files,
+          headers: builtHeaders,
+          fields: fields,
+          fileFieldName: fileFieldName,
+          method: 'POST',
+        );
+        response = await HttpPoolManager.instance.sendStreaming(request);
+        Logger.log('Token refreshed and multipart streaming request retried');
+        if (response.statusCode == 401) {
+          await AuthService.instance.signOut();
+          Logger.handle(
+            Exception('Authentication failed. Please sign in again.'),
+            StackTrace.current,
+            message: 'Authentication failed. Please sign in again.',
+          );
+          return;
+        }
+      } else {
+        await AuthService.instance.signOut();
+        Logger.handle(
+          Exception('Authentication failed. Please sign in again.'),
+          StackTrace.current,
+          message: 'Authentication failed. Please sign in again.',
+        );
+        return;
+      }
+    }
 
     if (response.statusCode != 200) {
       Logger.error('Multipart streaming request failed: ${response.statusCode}');
@@ -338,13 +413,16 @@ dynamic extractContentFromResponse(
   } else {
     Logger.debug('Error fetching data: ${response?.statusCode}');
     // TODO: handle error, better specially for script migration
-    PlatformManager.instance.crashReporter
-        .reportCrash(Exception('Error fetching data: ${response?.statusCode}'), StackTrace.current, userAttributes: {
-      'response_null': (response == null).toString(),
-      'response_status_code': response?.statusCode.toString() ?? '',
-      'is_embedding': isEmbedding.toString(),
-      'is_function_calling': isFunctionCalling.toString(),
-    });
+    PlatformManager.instance.crashReporter.reportCrash(
+      Exception('Error fetching data: ${response?.statusCode}'),
+      StackTrace.current,
+      userAttributes: {
+        'response_null': (response == null).toString(),
+        'response_status_code': response?.statusCode.toString() ?? '',
+        'is_embedding': isEmbedding.toString(),
+        'is_function_calling': isFunctionCalling.toString(),
+      },
+    );
     return null;
   }
 }

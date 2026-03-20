@@ -28,6 +28,7 @@ actor AgentSyncService {
     // MARK: - State
 
     private var cursors: [String: SyncCursor] = [:]
+    private var cachedTableColumns: [String: [String]] = [:]
     private var vmIP: String?
     private var authToken: String?
     private var isRunning = false
@@ -36,6 +37,8 @@ actor AgentSyncService {
     private var lastTokenRefresh: Date = .distantPast
     private var isPaused = false
     private var latencyBackoffMultiplier: UInt64 = 1
+    private var lastReuploadAt: Date = .distantPast
+    private let reuploadCooldown: TimeInterval = 30 * 60  // don't re-upload more than once per 30 min
 
     private let batchSize = 100
     private let baseSyncInterval: UInt64 = 3_000_000_000  // 3s in nanoseconds
@@ -163,6 +166,10 @@ actor AgentSyncService {
             if consecutiveFailures == 1 || consecutiveFailures % 10 == 0 {
                 log("AgentSync: backend unreachable (failures=\(consecutiveFailures), next retry in \(currentSyncInterval() / 1_000_000_000)s)")
             }
+            // After 3 consecutive failures, check if the VM lost its database
+            if consecutiveFailures == 3 {
+                await checkAndTriggerReupload()
+            }
         } else if totalSynced > 0 {
             if consecutiveFailures > 0 {
                 log("AgentSync: backend reconnected after \(consecutiveFailures) failures")
@@ -190,6 +197,32 @@ actor AgentSyncService {
         }
     }
 
+    // MARK: - Re-upload trigger
+
+    /// Called after 3 consecutive sync failures. Hits /health — if the VM has no
+    /// database (e.g. it restarted and lost its data), triggers a full re-upload.
+    private func checkAndTriggerReupload() async {
+        guard let vmIP = vmIP, let authToken = authToken else { return }
+        guard Date().timeIntervalSince(lastReuploadAt) >= reuploadCooldown else {
+            log("AgentSync: skipping re-upload check (cooldown active)")
+            return
+        }
+
+        guard let url = URL(string: "http://\(vmIP):8080/health") else { return }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let dbReady = json["databaseReady"] as? Bool,
+                  !dbReady else { return }
+
+            log("AgentSync: VM has no database — triggering re-upload")
+            lastReuploadAt = Date()
+            await AgentVMService.shared.reuploadDatabase(vmIP: vmIP, authToken: authToken)
+        } catch {
+            log("AgentSync: re-upload health check failed — \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Firebase token refresh
 
     private func refreshFirebaseToken() async {
@@ -197,10 +230,12 @@ actor AgentSyncService {
 
         do {
             let idToken = try await AuthService.shared.getIdToken()
+            // Send token both as query param (backward compat) and header (preferred)
             guard let url = URL(string: "http://\(vmIP):8080/auth?token=\(authToken)") else { return }
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
             request.timeoutInterval = 15
 
             let body: [String: String] = ["firebaseToken": idToken]
@@ -223,16 +258,30 @@ actor AgentSyncService {
 
         let cursor = cursors[spec.name] ?? SyncCursor(lastId: 0, lastUpdatedAt: "1970-01-01T00:00:00")
 
+        // Resolve columns once and cache — PRAGMA table_info is static at runtime
+        let columns: [String]
+        if let cached = cachedTableColumns[spec.name] {
+            columns = cached
+        } else {
+            do {
+                let fetched: [String] = try await dbPool.read { db in
+                    let columnInfos = try Row.fetchAll(db, sql: "PRAGMA table_info('\(spec.name)')")
+                    let allColumns = columnInfos.compactMap { $0["name"] as? String }
+                    return allColumns.filter { !spec.excludedColumns.contains($0) }
+                }
+                cachedTableColumns[spec.name] = fetched
+                columns = fetched
+            } catch {
+                log("AgentSync: error fetching schema for \(spec.name) — \(error.localizedDescription)")
+                return 0
+            }
+        }
+
+        guard !columns.isEmpty else { return 0 }
+
         do {
+            let selectCols = columns.map { "\"\($0)\"" }.joined(separator: ", ")
             let rows: [[String: Any]] = try await dbPool.read { db in
-                // Get actual column names from the table
-                let columnInfos = try Row.fetchAll(db, sql: "PRAGMA table_info('\(spec.name)')")
-                let allColumns = columnInfos.compactMap { $0["name"] as? String }
-                let columns = allColumns.filter { !spec.excludedColumns.contains($0) }
-
-                guard !columns.isEmpty else { return [] }
-
-                let selectCols = columns.map { "\"\($0)\"" }.joined(separator: ", ")
                 let sql: String
                 let args: [any DatabaseValueConvertible]
 
@@ -311,6 +360,7 @@ actor AgentSyncService {
     private func pushRows(_ table: String, _ rows: [[String: Any]]) async -> PushResult {
         guard let vmIP = vmIP, let authToken = authToken else { return .networkError }
 
+        // Send token both as query param (backward compat) and header (preferred)
         guard let url = URL(string: "http://\(vmIP):8080/sync?token=\(authToken)") else {
             log("AgentSync: invalid sync URL for vmIP=\(vmIP), skipping push")
             return .httpError
@@ -319,6 +369,7 @@ actor AgentSyncService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 30
 
         let payload: [String: Any] = ["table": table, "rows": rows]
@@ -335,6 +386,10 @@ actor AgentSyncService {
 
             if httpResponse.statusCode == 200 {
                 return .success
+            } else if httpResponse.statusCode >= 500 {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                log("AgentSync: push \(table) failed — HTTP \(httpResponse.statusCode): \(body)")
+                return .networkError  // 5xx = server not ready, trigger backoff
             } else {
                 let body = String(data: data, encoding: .utf8) ?? ""
                 log("AgentSync: push \(table) failed — HTTP \(httpResponse.statusCode): \(body)")

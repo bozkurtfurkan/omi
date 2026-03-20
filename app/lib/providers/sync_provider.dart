@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/wals.dart';
+import 'package:omi/utils/debug_log_manager.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/other/time_utils.dart';
 import 'package:omi/models/sync_state.dart';
@@ -24,7 +25,7 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
   bool _isLoadingWals = false;
   bool get isLoadingWals => _isLoadingWals;
 
-  // Storage filter (used by RecordingsListPage)
+  // Storage filter
   WalStorage? _storageFilter;
   WalStorage? get storageFilter => _storageFilter;
 
@@ -71,10 +72,12 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
     // Phone filter: show WALs on phone that are NOT originally from SD card or flash page
     if (_storageFilter == WalStorage.disk || _storageFilter == WalStorage.mem) {
       return _allWals
-          .where((wal) =>
-              (wal.storage == WalStorage.disk || wal.storage == WalStorage.mem) &&
-              wal.originalStorage != WalStorage.sdcard &&
-              wal.originalStorage != WalStorage.flashPage)
+          .where(
+            (wal) =>
+                (wal.storage == WalStorage.disk || wal.storage == WalStorage.mem) &&
+                wal.originalStorage != WalStorage.sdcard &&
+                wal.originalStorage != WalStorage.flashPage,
+          )
           .toList();
     }
 
@@ -177,6 +180,11 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
     await refreshWals();
   }
 
+  Future<void> deleteAllPendingWals() async {
+    await _walService.getSyncs().deleteAllPendingWals();
+    await refreshWals();
+  }
+
   Future<void> syncWals({IWifiConnectionListener? connectionListener}) async {
     _updateSyncState(_syncState.toIdle());
     _totalWalsToProcess = missingWals.length;
@@ -210,6 +218,12 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
         Logger.debug('SyncProvider: Two-phase sync - ${sdCardWals.length} SD card files will be downloaded first');
       }
 
+      DebugLogManager.logInfo('SyncProvider: starting $context', {
+        'totalMissing': missingWals.length,
+        'sdCardWals': sdCardWals.length,
+        'deviceWals': missingWalsOnDevice.length,
+      });
+
       final result = await operation();
 
       // If sync was cancelled while awaiting, don't override the cancel state.
@@ -220,14 +234,24 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
 
       if (result != null && _hasConversationResults(result)) {
         Logger.debug(
-            'SyncProvider: $context returned ${result.newConversationIds.length} new, ${result.updatedConversationIds.length} updated conversations');
+          'SyncProvider: $context returned ${result.newConversationIds.length} new, ${result.updatedConversationIds.length} updated conversations',
+        );
+        DebugLogManager.logInfo('SyncProvider: $context succeeded', {
+          'newConversations': result.newConversationIds.length,
+          'updatedConversations': result.updatedConversationIds.length,
+        });
         await _processConversationResults(result);
       } else {
+        DebugLogManager.logInfo('SyncProvider: $context completed with no new conversations');
         _updateSyncState(_syncState.toCompleted(conversations: []));
       }
     } catch (e) {
       final errorMessage = _formatSyncError(e, failedWal);
       Logger.debug('SyncProvider: Error in $context: $errorMessage');
+      DebugLogManager.logError(e, null, 'SyncProvider: $context failed: $errorMessage', {
+        if (failedWal != null) 'walId': failedWal.id,
+        if (failedWal != null) 'walStorage': failedWal.storage.toString(),
+      });
       _updateSyncState(_syncState.toError(message: errorMessage, failedWal: failedWal));
     }
   }
@@ -333,10 +357,7 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
       wavFilePath = await _audioPlayerUtils.ensureAudioFileExists(wal);
     }
 
-    return await compute(_generateWaveformInBackground, {
-      'walId': walId,
-      'wavFilePath': wavFilePath,
-    });
+    return await compute(_generateWaveformInBackground, {'walId': walId, 'wavFilePath': wavFilePath});
   }
 
   static Future<List<double>?> _generateWaveformInBackground(Map<String, dynamic> params) async {
@@ -384,6 +405,7 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
   /// Cancel ongoing sync operation.
   /// If batches already completed, immediately shows their conversation results.
   void cancelSync() {
+    DebugLogManager.logWarning('SyncProvider: user cancelled sync');
     // Grab accumulated results before cancelling
     final partialResults = _walService.getSyncs().accumulatedResponse;
     _walService.getSyncs().cancelSync();
