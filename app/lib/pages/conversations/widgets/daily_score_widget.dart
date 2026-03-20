@@ -5,10 +5,8 @@ import 'package:flutter/services.dart';
 
 import 'package:provider/provider.dart';
 
-import 'package:omi/pages/action_items/widgets/action_item_form_sheet.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/pages/conversations/widgets/goals_widget.dart';
-import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/goals_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
@@ -32,21 +30,10 @@ class DailyScoreWidgetState extends State<DailyScoreWidget> {
     widget.goalsWidgetKey?.currentState?.addGoal();
   }
 
-  void _showCreateTaskSheet(BuildContext context) {
-    final now = DateTime.now();
-    final defaultDueDate = DateTime(now.year, now.month, now.day, 23, 59);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ActionItemFormSheet(defaultDueDate: defaultDueDate),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Consumer2<ActionItemsProvider, GoalsProvider>(
-      builder: (context, provider, goalsProvider, child) {
+    return Consumer<GoalsProvider>(
+      builder: (context, goalsProvider, child) {
         final goals = goalsProvider.goals;
         final isLoadingGoals = goalsProvider.isLoading;
 
@@ -55,11 +42,8 @@ class DailyScoreWidgetState extends State<DailyScoreWidget> {
         final todayStart = DateTime(now.year, now.month, now.day);
         final todayEnd = todayStart.add(const Duration(days: 1));
 
-        // Get tasks due today only
-        final todayTasks = provider.actionItems.where((item) {
-          if (item.dueAt == null) return false;
-          return item.dueAt!.isAfter(todayStart.subtract(const Duration(days: 1))) && item.dueAt!.isBefore(todayEnd);
-        }).toList();
+        // Get tasks due today only (ActionItemsProvider removed)
+        final todayTasks = <dynamic>[];
 
         final totalTasks = todayTasks.length;
         final completedTasks = todayTasks.where((t) => t.completed).length;
@@ -114,11 +98,7 @@ class DailyScoreWidgetState extends State<DailyScoreWidget> {
                             onTap: () {
                               HapticFeedback.lightImpact();
                               MixpanelManager().dailyScoreCtaTapped(ctaType: goals.isEmpty ? 'add_goal' : 'new_task');
-                              if (goals.isEmpty) {
-                                _addGoal();
-                              } else {
-                                _showCreateTaskSheet(context);
-                              }
+                              // action items removed
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

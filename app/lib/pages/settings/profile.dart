@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:omi/backend/preferences.dart';
-import 'package:omi/pages/payments/payments_page.dart';
 import 'package:omi/pages/settings/change_name_widget.dart';
 import 'package:omi/pages/settings/language_settings_page.dart';
 import 'package:omi/pages/settings/custom_vocabulary_page.dart';
 import 'package:omi/pages/settings/people.dart';
 import 'package:omi/pages/settings/data_privacy_page.dart';
-import 'package:omi/pages/speech_profile/page.dart';
 
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
@@ -160,9 +158,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 const Divider(height: 1, color: Color(0xFF3C3C43)),
                 _buildProfileItem(
                   title: context.l10n.email,
-                  chipValue: SharedPreferencesUtil().email.isEmpty
-                      ? context.l10n.notSet
-                      : SharedPreferencesUtil().email,
+                  chipValue:
+                      SharedPreferencesUtil().email.isEmpty ? context.l10n.notSet : SharedPreferencesUtil().email,
                   icon: const FaIcon(FontAwesomeIcons.solidEnvelope, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {},
                   showChevron: false,
@@ -191,15 +188,6 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildSectionContainer(
               children: [
                 _buildProfileItem(
-                  title: context.l10n.speechProfile,
-                  icon: const FaIcon(FontAwesomeIcons.microphone, color: Color(0xFF8E8E93), size: 20),
-                  onTap: () {
-                    routeToPage(context, const SpeechProfilePage());
-                    MixpanelManager().pageOpened('Profile Speech Profile');
-                  },
-                ),
-                const Divider(height: 1, color: Color(0xFF3C3C43)),
-                _buildProfileItem(
                   title: context.l10n.identifyingOthers,
                   icon: const FaIcon(FontAwesomeIcons.users, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {
@@ -210,17 +198,9 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 32),
 
-            // PAYMENT & PRIVACY SECTION
+            // PRIVACY SECTION
             _buildSectionContainer(
               children: [
-                _buildProfileItem(
-                  title: context.l10n.paymentMethods,
-                  icon: const FaIcon(FontAwesomeIcons.solidCreditCard, color: Color(0xFF8E8E93), size: 20),
-                  onTap: () {
-                    routeToPage(context, const PaymentsPage());
-                  },
-                ),
-                const Divider(height: 1, color: Color(0xFF3C3C43)),
                 _buildProfileItem(
                   title: context.l10n.conversationDisplay,
                   icon: const FaIcon(FontAwesomeIcons.list, color: Color(0xFF8E8E93), size: 20),
@@ -246,9 +226,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 Builder(
                   builder: (context) {
                     final uid = SharedPreferencesUtil().uid;
-                    final truncatedUid = uid.length > 6
-                        ? '${uid.substring(0, 3)}•••••${uid.substring(uid.length - 3)}'
-                        : uid;
+                    final truncatedUid =
+                        uid.length > 6 ? '${uid.substring(0, 3)}•••••${uid.substring(uid.length - 3)}' : uid;
                     return _buildProfileItem(
                       title: context.l10n.userId,
                       chipValue: truncatedUid,

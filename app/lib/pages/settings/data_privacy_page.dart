@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:omi/backend/schema/app.dart';
-import 'package:omi/pages/apps/app_detail/app_detail.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/pages/settings/widgets/data_protection_section.dart';
 import 'package:omi/providers/app_provider.dart';
@@ -143,9 +142,8 @@ class _DataPrivacyPageState extends State<DataPrivacyPage> {
                   const SizedBox(height: 24),
                   Consumer<AppProvider>(
                     builder: (context, appProvider, child) {
-                      final appsWithDataAccess = appProvider.apps
-                          .where((app) => app.enabled && app.worksExternally())
-                          .toList();
+                      final appsWithDataAccess =
+                          appProvider.apps.where((app) => app.enabled && app.worksExternally()).toList();
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,9 +198,7 @@ class _DataPrivacyPageState extends State<DataPrivacyPage> {
                                       style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                                     ),
                                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                                    onTap: () {
-                                      routeToPage(context, AppDetailPage(app: app, preventAutoOpenHomePage: true));
-                                    },
+                                    onTap: () {},
                                   ),
                                 );
                               }).toList(),

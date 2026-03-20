@@ -2,8 +2,22 @@ import 'dart:convert';
 
 import 'package:omi/backend/http/shared.dart';
 import 'package:omi/env/env.dart';
-import 'package:omi/pages/payments/models/payment_method_config.dart';
 import 'package:omi/utils/logger.dart';
+
+// PaymentMethodConfig models (inlined from deleted payments page)
+class PayPalDetails {
+  final String email;
+  final String paypalmeUrl;
+
+  PayPalDetails({required this.email, required this.paypalmeUrl});
+
+  factory PayPalDetails.fromJson(Map<String, dynamic> json) {
+    return PayPalDetails(
+      email: json['email'] ?? '',
+      paypalmeUrl: json['paypalme_url'] ?? '',
+    );
+  }
+}
 
 Future<Map<String, dynamic>?> getStripeAccountLink(String? country) async {
   try {

@@ -11,7 +11,6 @@ import 'package:omi/backend/schema/message_event.dart';
 import 'package:omi/pages/conversation_capturing/page.dart';
 import 'package:omi/pages/capture/widgets/widgets.dart';
 import 'package:omi/pages/conversations/widgets/capture.dart';
-import 'package:omi/pages/processing_conversations/page.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/providers/device_provider.dart';
@@ -707,9 +706,7 @@ class _ProcessingConversationWidgetState extends State<ProcessingConversationWid
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        routeToPage(context, ProcessingConversationPage(conversation: widget.conversation));
-      },
+      onTap: () async {},
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Container(

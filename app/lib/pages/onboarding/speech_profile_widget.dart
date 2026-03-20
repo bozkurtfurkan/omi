@@ -6,7 +6,6 @@ import 'package:flutter_provider_utilities/flutter_provider_utilities.dart';
 import 'package:provider/provider.dart';
 
 import 'package:omi/pages/settings/language_selection_dialog.dart';
-import 'package:omi/pages/speech_profile/percentage_bar_progress.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/home_provider.dart';
 import 'package:omi/providers/speech_profile_provider.dart';
@@ -477,7 +476,7 @@ class _SpeechProfileWidgetState extends State<SpeechProfileWidget> with TickerPr
                           // Progress bar
                           SizedBox(
                             width: double.infinity,
-                            child: ProgressBarWithPercentage(progressValue: provider.questionProgress),
+                            child: LinearProgressIndicator(value: provider.questionProgress),
                           ),
 
                           const SizedBox(height: 8),

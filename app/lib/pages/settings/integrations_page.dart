@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:omi/widgets/shimmer_with_timeout.dart';
 
-import 'package:omi/pages/apps/add_app.dart';
 import 'package:omi/providers/integration_provider.dart';
 import 'package:omi/services/apple_health_service.dart';
 import 'package:omi/services/google_calendar_service.dart';
@@ -471,7 +470,7 @@ class _IntegrationsPageState extends State<IntegrationsPage> with WidgetsBinding
   Widget _buildCreateYourOwnAppTile() {
     return GestureDetector(
       onTap: () {
-        routeToPage(context, const AddAppPage(presetExternalIntegration: true));
+        // AddAppPage removed
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),

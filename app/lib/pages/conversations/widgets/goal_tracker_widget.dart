@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:omi/backend/http/api/goals.dart';
 import 'package:omi/utils/l10n_extensions.dart';
-import 'package:omi/pages/chat/page.dart';
 import 'package:omi/utils/logger.dart';
 
 /// Goal tracker widget with semicircle gauge
@@ -208,11 +207,7 @@ class _GoalTrackerWidgetState extends State<GoalTrackerWidget> with WidgetsBindi
     if (_advice == null || _advice!.isEmpty) return;
     HapticFeedback.lightImpact();
 
-    // Navigate to chat and send the advice as a message from Omi AI
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ChatPage(isPivotBottom: false, autoMessage: _advice)),
-    );
+    // ChatPage removed
   }
 
   Future<void> _createGoalFromSuggestion() async {

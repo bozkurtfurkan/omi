@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:omi/pages/speech_profile/page.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
@@ -96,9 +95,7 @@ class _SetupQuestionsPageState extends State<SetupQuestionsPage> {
                 onPressed: () {
                   if (selectedProfession != null && selectedUsage != null && selectedAge != null) {
                     MixpanelManager().setUserProperties(selectedProfession!, selectedUsage!, selectedAge!);
-                    Navigator.of(
-                      context,
-                    ).pushReplacement(MaterialPageRoute(builder: (c) => const SpeechProfilePage(onbording: true)));
+                    // SpeechProfilePage removed
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -124,11 +121,7 @@ class _SetupQuestionsPageState extends State<SetupQuestionsPage> {
             const SizedBox(height: 16),
             Center(
               child: GestureDetector(
-                onTap: () {
-                  Navigator.of(
-                    context,
-                  ).pushReplacement(MaterialPageRoute(builder: (c) => const SpeechProfilePage(onbording: true)));
-                },
+                onTap: () {},
                 child: Text(
                   context.l10n.setupSkipHelp,
                   style: const TextStyle(color: Colors.grey, decoration: TextDecoration.underline),

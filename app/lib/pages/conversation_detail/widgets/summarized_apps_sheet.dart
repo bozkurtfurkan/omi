@@ -9,7 +9,6 @@ import 'package:omi/widgets/shimmer_with_timeout.dart';
 
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/app.dart';
-import 'package:omi/pages/apps/widgets/capability_apps_page.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/widgets/create_template_bottom_sheet.dart';
@@ -647,8 +646,7 @@ class _AppListItemState extends State<_AppListItem> {
 
   Widget _buildTrailingWidget() {
     // Check if this app is currently being processed
-    final isProcessing =
-        widget.provider != null &&
+    final isProcessing = widget.provider != null &&
         widget.provider!.loadingReprocessConversation &&
         widget.provider!.selectedAppForReprocessing?.id == widget.app.id;
 
@@ -759,18 +757,7 @@ class _EnableAppsListItem extends StatelessWidget {
             final conversationId = context.read<ConversationDetailProvider>().conversation.id;
             MixpanelManager().summarizedAppEnableAppsClicked(conversationId: conversationId);
 
-            // Navigate to Summary (memories) capability apps page
-            final appProvider = context.read<AppProvider>();
-            final memoriesApps = appProvider.apps.where((app) => app.worksWithMemories()).toList();
-
-            routeToPage(
-              context,
-              CapabilityAppsPage(
-                capability: AppCapability(title: context.l10n.summary, id: 'memories'),
-                apps: memoriesApps,
-              ),
-            );
-            MixpanelManager().pageOpened('Summary Apps');
+            // CapabilityAppsPage removed
           },
         ),
         Divider(height: 1, thickness: 0.5, color: Colors.grey.withValues(alpha: 0.2), indent: 56, endIndent: 16),

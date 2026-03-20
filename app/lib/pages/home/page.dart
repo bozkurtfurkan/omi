@@ -19,18 +19,12 @@ import 'package:omi/backend/schema/app.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/backend/schema/geolocation.dart';
 import 'package:omi/main.dart';
-import 'package:omi/pages/action_items/action_items_page.dart';
-import 'package:omi/pages/apps/app_detail/app_detail.dart';
-import 'package:omi/pages/apps/page.dart';
-import 'package:omi/pages/chat/page.dart';
 import 'package:omi/pages/conversation_capturing/page.dart';
 import 'package:omi/pages/conversation_detail/page.dart';
 import 'package:omi/pages/conversations/conversations_page.dart';
 import 'package:omi/pages/conversations/sync_page.dart';
 import 'package:omi/pages/conversations/widgets/merge_action_bar.dart';
 import 'package:omi/pages/memories/page.dart';
-import 'package:omi/pages/phone_calls/phone_calls_page.dart';
-import 'package:omi/pages/phone_calls/phone_calls_upsell_sheet.dart';
 import 'package:omi/models/subscription.dart';
 import 'package:omi/providers/usage_provider.dart';
 import 'package:omi/pages/settings/daily_summary_detail_page.dart';
@@ -38,7 +32,6 @@ import 'package:omi/pages/settings/data_privacy_page.dart';
 import 'package:omi/pages/settings/settings_drawer.dart';
 import 'package:omi/pages/settings/task_integrations_page.dart';
 import 'package:omi/pages/settings/wrapped_2025_page.dart';
-import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/connectivity_provider.dart';
@@ -123,9 +116,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   StreamSubscription? _notificationStreamSubscription;
 
   final GlobalKey<State<ConversationsPage>> _conversationsPageKey = GlobalKey<State<ConversationsPage>>();
-  final GlobalKey<State<ActionItemsPage>> _actionItemsPageKey = GlobalKey<State<ActionItemsPage>>();
   final GlobalKey<State<MemoriesPage>> _memoriesPageKey = GlobalKey<State<MemoriesPage>>();
-  final GlobalKey<AppsPageState> _appsPageKey = GlobalKey<AppsPageState>();
   late final List<Widget> _pages;
 
   // Freemium switch handler for auto-switch dialogs
@@ -146,12 +137,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
           (conversationsState as dynamic).scrollToTop();
         }
         break;
-      case 1:
-        final actionItemsState = _actionItemsPageKey.currentState;
-        if (actionItemsState != null) {
-          (actionItemsState as dynamic).scrollToTop();
-        }
-        break;
       case 2:
         final memoriesState = _memoriesPageKey.currentState;
         if (memoriesState != null) {
@@ -159,10 +144,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
         }
         break;
       case 3:
-        final appsState = _appsPageKey.currentState;
-        if (appsState != null) {
-          appsState.scrollToTop();
-        }
         break;
     }
   }
@@ -234,9 +215,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   void initState() {
     _pages = [
       ConversationsPage(key: _conversationsPageKey),
-      ActionItemsPage(key: _actionItemsPageKey, onAddGoal: _addGoal),
+      const SizedBox.shrink(),
       MemoriesPage(key: _memoriesPageKey),
-      AppsPage(key: _appsPageKey),
+      const SizedBox.shrink(),
     ];
     SharedPreferencesUtil().onboardingCompleted = true;
     updateUserOnboardingState(completed: true);
@@ -309,47 +290,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
       if (!mounted) return;
       switch (pageAlias) {
         case "apps":
-          if (detailPageId != null && detailPageId.isNotEmpty) {
-            final appProvider = context.read<AppProvider>();
-            var app = await appProvider.getAppFromId(detailPageId);
-            if (app != null && mounted) {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => AppDetailPage(app: app)));
-            }
-          }
           break;
         case "chat":
-          Logger.debug('inside chat alias $detailPageId');
-          if (detailPageId != null && detailPageId.isNotEmpty) {
-            var appId = detailPageId != "omi" ? detailPageId : ''; // omi ~ no select
-            if (mounted) {
-              var appProvider = Provider.of<AppProvider>(context, listen: false);
-              var messageProvider = Provider.of<MessageProvider>(context, listen: false);
-              App? selectedApp;
-              if (appId.isNotEmpty) {
-                selectedApp = await appProvider.getAppFromId(appId);
-              }
-              appProvider.setSelectedChatAppId(appId);
-              await messageProvider.refreshMessages();
-              if (messageProvider.messages.isEmpty) {
-                messageProvider.sendInitialAppMessage(selectedApp);
-              }
-            }
-          } else {
-            if (mounted) {
-              await Provider.of<MessageProvider>(context, listen: false).refreshMessages();
-            }
-          }
-          // Navigate to chat page directly since it's no longer in the tab bar
-          // If there's an auto-message (e.g., from daily reflection notification), send it
-          final autoMessageToSend = widget.autoMessage;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ChatPage(isPivotBottom: false, autoMessage: autoMessageToSend)),
-              );
-            }
-          });
           break;
         case "settings":
           // Use context from the current widget instead of navigator key for bottom sheet
@@ -635,79 +577,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                                   }
                                 },
                               ),
-                              // Phone calls button - bottom left
-                              if (home.selectedIndex == 0)
-                                Positioned(
-                                  left: 20,
-                                  bottom: 100,
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      HapticFeedback.mediumImpact();
-                                      MixpanelManager().bottomNavigationTabClicked('Phone Calls');
-                                      var usageProvider = context.read<UsageProvider>();
-                                      if (usageProvider.subscription == null) {
-                                        await usageProvider.fetchSubscription();
-                                      }
-                                      var isUnlimited =
-                                          usageProvider.subscription?.subscription.plan == PlanType.unlimited;
-                                      if (!isUnlimited) {
-                                        MixpanelManager().phoneCallUpsellShown(source: 'home');
-                                        if (!context.mounted) return;
-                                        showPhoneCallsUpsell(context);
-                                        return;
-                                      }
-                                      if (!context.mounted) return;
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) => const PhoneCallsPage()),
-                                      );
-                                    },
-                                    child: Container(
-                                      width: 56,
-                                      height: 56,
-                                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF1F1F25)),
-                                      child: const Icon(FontAwesomeIcons.phone, size: 22, color: Colors.white70),
-                                    ),
-                                  ),
-                                ),
-                              // Ask Omi button - bottom right
-                              if (home.selectedIndex == 0)
-                                Positioned(
-                                  right: 20,
-                                  bottom: 100,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      HapticFeedback.mediumImpact();
-                                      MixpanelManager().bottomNavigationTabClicked('Chat');
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) => const ChatPage(isPivotBottom: false)),
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(32),
-                                        color: Colors.deepPurple,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(FontAwesomeIcons.solidComment, size: 22, color: Colors.white),
-                                          const SizedBox(width: 10),
-                                          Text(
-                                            context.l10n.askOmi,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
                             ],
                           );
                         },
@@ -791,8 +660,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                           color: isSyncing
                               ? Colors.deepPurple.withValues(alpha: 0.2)
                               : hasPendingOnDevice
-                              ? Colors.orange.withValues(alpha: 0.15)
-                              : const Color(0xFF1F1F25),
+                                  ? Colors.orange.withValues(alpha: 0.15)
+                                  : const Color(0xFF1F1F25),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -801,8 +670,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                           color: isSyncing
                               ? Colors.deepPurpleAccent
                               : hasPendingOnDevice
-                              ? Colors.orangeAccent
-                              : Colors.white70,
+                                  ? Colors.orangeAccent
+                                  : Colors.white70,
                         ),
                       ),
                     );
@@ -977,59 +846,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                           ),
                         ),
                       ],
-                      const SizedBox(width: 8),
-                    ],
-                  );
-                },
-              ),
-              // Action items page buttons - export and completed toggle
-              Consumer2<HomeProvider, ActionItemsProvider>(
-                builder: (context, homeProvider, actionItemsProvider, _) {
-                  if (homeProvider.selectedIndex != 1) {
-                    return const SizedBox.shrink();
-                  }
-                  final showCompleted = actionItemsProvider.showCompletedView;
-                  return Row(
-                    children: [
-                      // Export button
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: const BoxDecoration(color: Color(0xFF1F1F25), shape: BoxShape.circle),
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(FontAwesomeIcons.arrowUpFromBracket, size: 16, color: Colors.white70),
-                          onPressed: () {
-                            HapticFeedback.mediumImpact();
-                            MixpanelManager().exportTasksBannerClicked();
-                            Navigator.of(
-                              context,
-                            ).push(MaterialPageRoute(builder: (context) => const TaskIntegrationsPage()));
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Completed toggle
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: showCompleted ? Colors.deepPurple.withValues(alpha: 0.5) : const Color(0xFF1F1F25),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: Icon(
-                            FontAwesomeIcons.solidCircleCheck,
-                            size: 16,
-                            color: showCompleted ? Colors.white : Colors.white70,
-                          ),
-                          onPressed: () {
-                            HapticFeedback.mediumImpact();
-                            actionItemsProvider.toggleShowCompletedView();
-                          },
-                        ),
-                      ),
                       const SizedBox(width: 8),
                     ],
                   );

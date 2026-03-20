@@ -11,7 +11,6 @@ import 'package:omi/backend/schema/message_event.dart';
 import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/pages/home/firmware_update.dart';
 import 'package:omi/pages/home/omiglass_ota_update.dart';
-import 'package:omi/pages/speech_profile/page.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/providers/home_provider.dart';
@@ -42,18 +41,7 @@ class SpeechProfileCardWidget extends StatelessWidget {
                   return Stack(
                     children: [
                       GestureDetector(
-                        onTap: () async {
-                          MixpanelManager().pageOpened('Speech Profile Memories');
-                          bool hasSpeakerProfile = SharedPreferencesUtil().hasSpeakerProfile;
-                          await routeToPage(context, const SpeechProfilePage());
-                          final newHasSpeakerProfile = SharedPreferencesUtil().hasSpeakerProfile;
-                          if (hasSpeakerProfile != newHasSpeakerProfile) {
-                            if (!context.mounted) return;
-                            await context.read<CaptureProvider>().onRecordProfileSettingChanged();
-                            if (!context.mounted) return;
-                            context.read<HomeProvider>().setSpeakerProfile(newHasSpeakerProfile);
-                          }
-                        },
+                        onTap: () async {},
                         child: Container(
                           decoration: const BoxDecoration(
                             color: Color(0xFF1F1F25),
@@ -104,8 +92,7 @@ class UpdateFirmwareCardWidget extends StatelessWidget {
       builder: (context, provider, child) {
         if (!provider.havingNewFirmware) return const SizedBox();
 
-        final isOmiGlass =
-            provider.pairedDevice?.type == DeviceType.openglass ||
+        final isOmiGlass = provider.pairedDevice?.type == DeviceType.openglass ||
             (provider.pairedDevice?.name.toLowerCase().contains('glass') ?? false);
 
         return Stack(

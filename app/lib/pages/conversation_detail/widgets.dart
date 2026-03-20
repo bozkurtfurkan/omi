@@ -19,7 +19,6 @@ import 'package:omi/backend/schema/geolocation.dart';
 import 'package:omi/backend/schema/structured.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/gen/assets.gen.dart';
-import 'package:omi/pages/apps/app_detail/app_detail.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/share.dart';
 import 'package:omi/pages/conversation_detail/test_prompts.dart';
@@ -61,9 +60,8 @@ List<TextSpan> highlightSearchMatches(String text, String searchQuery, {int curr
       TextSpan(
         text: text.substring(index, index + searchQuery.length),
         style: TextStyle(
-          backgroundColor: isCurrentResult
-              ? Colors.orange.withValues(alpha: 0.9)
-              : Colors.deepPurple.withValues(alpha: 0.6),
+          backgroundColor:
+              isCurrentResult ? Colors.orange.withValues(alpha: 0.9) : Colors.deepPurple.withValues(alpha: 0.6),
           color: Colors.white,
           fontWeight: FontWeight.bold,
         ),
@@ -773,12 +771,7 @@ class AppResultDetailWidget extends StatelessWidget {
           // App info in a more subtle format below the content - only show if content is not empty
           if (content.isNotEmpty)
             GestureDetector(
-              onTap: () async {
-                if (app != null) {
-                  MixpanelManager().pageOpened('App Detail');
-                  await routeToPage(context, AppDetailPage(app: app!));
-                }
-              },
+              onTap: () async {},
               child: Padding(
                 padding: const EdgeInsets.only(top: 12, left: 4),
                 child: Row(

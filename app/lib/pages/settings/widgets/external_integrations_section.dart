@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
-import 'package:omi/pages/apps/app_detail/app_detail.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/other/temp.dart';
@@ -48,9 +47,7 @@ class ExternalIntegrationsSection extends StatelessWidget {
                       leading: CircleAvatar(backgroundImage: NetworkImage(app.getImageUrl())),
                       title: Text(app.getName()),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        routeToPage(context, AppDetailPage(app: app));
-                      },
+                      onTap: () {},
                     );
                   },
                   separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.grey),

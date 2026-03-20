@@ -5,11 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:provider/provider.dart';
 
-import 'package:omi/backend/http/api/action_items.dart' as action_items_api;
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/mobile/mobile_app.dart';
-import 'package:omi/pages/action_items/widgets/accept_shared_tasks_sheet.dart';
-import 'package:omi/pages/apps/app_detail/app_detail.dart';
 import 'package:omi/pages/settings/asana_settings_page.dart';
 import 'package:omi/pages/settings/clickup_settings_page.dart';
 import 'package:omi/pages/settings/usage_page.dart';
@@ -68,20 +65,7 @@ class _AppShellState extends State<AppShell> {
       return;
     }
 
-    if (uri.pathSegments.first == 'apps' && uri.pathSegments.length > 1) {
-      if (mounted) {
-        var app = await context.read<AppProvider>().getAppFromId(uri.pathSegments[1]);
-        if (app != null) {
-          PlatformManager.instance.mixpanel.track('App Opened From DeepLink', properties: {'appId': app.id});
-          if (mounted) {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context) => AppDetailPage(app: app)));
-          }
-        } else {
-          Logger.debug('App not found: ${uri.pathSegments[1]}');
-          AppSnackbar.showSnackbarError(context.l10n.appNotAvailable);
-        }
-      }
-    } else if (uri.pathSegments.first == 'wrapped') {
+    if (uri.pathSegments.first == 'wrapped') {
       if (mounted) {
         PlatformManager.instance.mixpanel.track('Wrapped Opened From DeepLink');
         Navigator.of(context).push(MaterialPageRoute(builder: (context) => const Wrapped2025Page()));
@@ -193,32 +177,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _handleSharedTasksDeepLink(String token) async {
-    final data = await action_items_api.getSharedActionItems(token);
-    if (!mounted) return;
-
-    if (data == null) {
-      AppSnackbar.showSnackbarError('Shared tasks not found or link expired');
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => AcceptSharedTasksSheet(
-        token: token,
-        senderName: data['sender_name'] ?? 'Someone',
-        tasks: (data['tasks'] as List<dynamic>? ?? [])
-            .map((t) => {'description': t['description'] ?? '', 'due_at': t['due_at']})
-            .toList(),
-        onAccepted: () {
-          // Refresh action items after accepting
-          if (mounted) {
-            context.read<ActionItemsProvider>().forceRefreshActionItems();
-          }
-        },
-      ),
-    );
+    // AcceptSharedTasksSheet removed
   }
 
   Future<void> _handleTodoistCallback() async {

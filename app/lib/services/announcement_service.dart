@@ -5,9 +5,6 @@ import 'package:omi/backend/http/api/announcements.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/models/announcement.dart';
-import 'package:omi/pages/announcements/announcement_dialog.dart';
-import 'package:omi/pages/announcements/changelog_sheet.dart';
-import 'package:omi/pages/announcements/feature_screen.dart';
 import 'package:omi/providers/announcement_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 
@@ -48,24 +45,7 @@ class AnnouncementService {
         return;
       }
 
-      // 1. Show changelogs on version upgrade (fetched separately)
-      if (isVersionUpgrade && context.mounted) {
-        final changelogs = await getAppChangelogs(fromVersion: lastKnownVersion, toVersion: currentVersion);
-        if (changelogs.isNotEmpty && context.mounted) {
-          _isShowingAnnouncement = true;
-          try {
-            MixpanelManager().changelogShown(
-              changelogCount: changelogs.length,
-              fromVersion: lastKnownVersion,
-              toVersion: currentVersion,
-            );
-            await ChangelogSheet.show(context, changelogs);
-            MixpanelManager().changelogDismissed(changelogCount: changelogs.length);
-          } finally {
-            _isShowingAnnouncement = false;
-          }
-        }
-      }
+      // Changelog display removed (announcements pages deleted)
 
       // 2. Fetch and show other pending announcements (features, promos)
       final trigger = isVersionUpgrade ? 'version_upgrade' : 'app_launch';
@@ -137,10 +117,8 @@ class AnnouncementService {
           case AnnouncementType.changelog:
             break;
           case AnnouncementType.feature:
-            await FeatureScreen.show(context, announcement);
             break;
           case AnnouncementType.announcement:
-            ctaClicked = await AnnouncementDialog.show(context, announcement);
             break;
         }
 
