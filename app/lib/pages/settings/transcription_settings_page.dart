@@ -12,15 +12,12 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:omi/utils/enums.dart';
-
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/models/custom_stt_config.dart';
 import 'package:omi/models/stt_provider.dart';
 // TODO: page deleted - import 'package:omi/pages/settings/usage_page.dart';
 import 'package:omi/providers/capture_provider.dart';
-import 'package:omi/providers/local_capture_provider.dart';
 import 'package:omi/services/custom_stt_log_service.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/sockets/transcription_service.dart';
@@ -810,18 +807,11 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
                                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
                               ),
                             ),
-                            Consumer2<CaptureProvider, LocalCaptureProvider>(
-                              builder: (_, capture, local, __) {
-                                final isRecording = capture.recordingState != RecordingState.stop || local.isRecording;
-                                return Switch(
-                                  value: _offlineModeEnabled,
-                                  onChanged: isRecording
-                                      ? null
-                                      : (val) async {
-                                          await SharedPreferencesUtil().setOfflineModeEnabled(val);
-                                          setState(() => _offlineModeEnabled = val);
-                                        },
-                                );
+                            Switch(
+                              value: _offlineModeEnabled,
+                              onChanged: (val) async {
+                                await SharedPreferencesUtil().setOfflineModeEnabled(val);
+                                setState(() => _offlineModeEnabled = val);
                               },
                             ),
                           ],

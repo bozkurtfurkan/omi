@@ -686,6 +686,6 @@ class SharedPreferencesUtil {
   Future<bool> clear() async => await _preferences?.clear() ?? false;
 
   //------------ Offline Mode -----------
-  bool get offlineModeEnabled => getBool('offlineModeEnabled');
+  bool get offlineModeEnabled => getBool('offlineModeEnabled', defaultValue: true);
   Future<bool> setOfflineModeEnabled(bool v) => saveBool('offlineModeEnabled', v);
 }
