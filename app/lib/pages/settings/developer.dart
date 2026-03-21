@@ -77,6 +77,16 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
   }
 
   Widget _buildSttChip() {
+    if (SharedPreferencesUtil().offlineModeEnabled) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(color: Colors.grey.shade800, borderRadius: BorderRadius.circular(8)),
+        child: const Text(
+          'Apple STT',
+          style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
+        ),
+      );
+    }
     final useCustom = SharedPreferencesUtil().useCustomStt;
     final config = SharedPreferencesUtil().customSttConfig;
     final label = useCustom ? SttProviderConfig.get(config.provider).displayName : 'Omi';
