@@ -15,6 +15,7 @@ import 'package:omi/pages/conversation_detail/widgets/name_speaker_sheet.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/providers/device_provider.dart';
+import 'package:omi/providers/local_capture_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/enums.dart';
 import 'package:omi/utils/l10n_extensions.dart';
@@ -46,7 +47,30 @@ class _ConversationCapturingPageState extends State<ConversationCapturingPage> w
     showSummarizeConfirmation = SharedPreferencesUtil().showSummarizeConfirmation;
     _animationController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))
       ..repeat(reverse: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<LocalCaptureProvider>().addListener(_onLocalProviderChanged);
+        if (SharedPreferencesUtil().offlineModeEnabled) {
+          final deviceProvider = context.read<DeviceProvider>();
+          final localProvider = context.read<LocalCaptureProvider>();
+          final bleStream = deviceProvider.getBleAudioStream();
+          localProvider.startRecording(audioStream: bleStream);
+        }
+      }
+    });
     super.initState();
+  }
+
+  void _onLocalProviderChanged() {
+    final error = context.read<LocalCaptureProvider>().transcriptError;
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('STT Error: $error'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    }
   }
 
   Future<void> _toggleMute(CaptureProvider provider) async {
@@ -57,7 +81,12 @@ class _ConversationCapturingPageState extends State<ConversationCapturingPage> w
         _isMuted = false;
       });
 
-      if (PlatformService.isDesktop) {
+      if (SharedPreferencesUtil().offlineModeEnabled) {
+        final deviceProvider = context.read<DeviceProvider>();
+        final localProvider = context.read<LocalCaptureProvider>();
+        final bleStream = deviceProvider.getBleAudioStream();
+        await localProvider.resumeRecording(audioStream: bleStream);
+      } else if (PlatformService.isDesktop) {
         // Desktop - system audio
         await provider.resumeSystemAudioRecording();
       } else if (provider.havingRecordingDevice) {
@@ -77,7 +106,9 @@ class _ConversationCapturingPageState extends State<ConversationCapturingPage> w
         _isMuted = true;
       });
 
-      if (PlatformService.isDesktop) {
+      if (SharedPreferencesUtil().offlineModeEnabled) {
+        await context.read<LocalCaptureProvider>().pauseRecording();
+      } else if (PlatformService.isDesktop) {
         // Desktop - system audio
         await provider.pauseSystemAudioRecording();
       } else if (provider.havingRecordingDevice) {
@@ -93,6 +124,7 @@ class _ConversationCapturingPageState extends State<ConversationCapturingPage> w
 
   @override
   void dispose() {
+    context.read<LocalCaptureProvider>().removeListener(_onLocalProviderChanged);
     _controller?.dispose();
     _animationController.dispose();
     _timelineScrollController.dispose();
@@ -120,14 +152,18 @@ class _ConversationCapturingPageState extends State<ConversationCapturingPage> w
     if (provider.segments.isNotEmpty || provider.photos.isNotEmpty) {
       // Helper function to stop recording and process conversation
       Future<void> stopRecordingAndProcess() async {
-        // Stop any active recording (phone mic or system audio)
-        if (provider.recordingState == RecordingState.record) {
-          await provider.stopStreamRecording();
-        } else if (provider.recordingState == RecordingState.systemAudioRecord) {
-          await provider.stopSystemAudioRecording();
+        if (SharedPreferencesUtil().offlineModeEnabled) {
+          await context.read<LocalCaptureProvider>().stopRecording();
+        } else {
+          // Stop any active recording (phone mic or system audio)
+          if (provider.recordingState == RecordingState.record) {
+            await provider.stopStreamRecording();
+          } else if (provider.recordingState == RecordingState.systemAudioRecord) {
+            await provider.stopSystemAudioRecording();
+          }
+          // Then process the conversation
+          provider.forceProcessingCurrentConversation();
         }
-        // Then process the conversation
-        provider.forceProcessingCurrentConversation();
       }
 
       if (!showSummarizeConfirmation) {
@@ -227,6 +263,23 @@ class _ConversationCapturingPageState extends State<ConversationCapturingPage> w
             ),
             body: Column(
               children: [
+                Consumer<LocalCaptureProvider>(
+                  builder: (_, local, __) {
+                    if (!SharedPreferencesUtil().offlineModeEnabled) return const SizedBox.shrink();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Offline · Apple STT',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    );
+                  },
+                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 0),
@@ -235,70 +288,90 @@ class _ConversationCapturingPageState extends State<ConversationCapturingPage> w
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
                         // Transcripts, photos
-                        provider.segments.isEmpty && provider.photos.isEmpty
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 50.0),
-                                  child: Text(context.l10n.waitingForTranscriptOrPhotos),
-                                ),
-                              )
-                            : provider.photos.isNotEmpty
-                                ? _buildChronologicalTimeline(provider)
-                                : getTranscriptWidget(
-                                    false,
-                                    provider.segments,
-                                    provider.photos,
-                                    deviceProvider.connectedDevice,
-                                    bottomMargin: 150,
-                                    suggestions: provider.suggestionsBySegmentId,
-                                    taggingSegmentIds: provider.taggingSegmentIds,
-                                    onAcceptSuggestion: (suggestion) {
-                                      provider.assignSpeakerToConversation(
-                                        suggestion.speakerId,
-                                        suggestion.personId,
-                                        suggestion.personName,
-                                        [suggestion.segmentId],
-                                      );
-                                    },
-                                    editSegment: (segmentId, speakerId) {
-                                      final connectivityProvider = Provider.of<ConnectivityProvider>(
-                                        context,
-                                        listen: false,
-                                      );
-                                      if (!connectivityProvider.isConnected) {
-                                        ConnectivityProvider.showNoInternetDialog(context);
-                                        return;
-                                      }
-                                      showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        backgroundColor: Colors.black,
-                                        shape: const RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                                        ),
-                                        builder: (context) {
-                                          final suggestion = provider.suggestionsBySegmentId.values.firstWhere(
-                                            (s) => s.speakerId == speakerId,
-                                            orElse: () => SpeakerLabelSuggestionEvent.empty(),
+                        Consumer<LocalCaptureProvider>(
+                          builder: (_, local, __) {
+                            if (SharedPreferencesUtil().offlineModeEnabled) {
+                              return local.currentTranscript.isEmpty
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 50.0),
+                                        child: Text(context.l10n.waitingForTranscriptOrPhotos),
+                                      ),
+                                    )
+                                  : SingleChildScrollView(
+                                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 180),
+                                      child: Text(
+                                        local.currentTranscript,
+                                        style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+                                      ),
+                                    );
+                            }
+                            return provider.segments.isEmpty && provider.photos.isEmpty
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 50.0),
+                                      child: Text(context.l10n.waitingForTranscriptOrPhotos),
+                                    ),
+                                  )
+                                : provider.photos.isNotEmpty
+                                    ? _buildChronologicalTimeline(provider)
+                                    : getTranscriptWidget(
+                                        false,
+                                        provider.segments,
+                                        provider.photos,
+                                        deviceProvider.connectedDevice,
+                                        bottomMargin: 150,
+                                        suggestions: provider.suggestionsBySegmentId,
+                                        taggingSegmentIds: provider.taggingSegmentIds,
+                                        onAcceptSuggestion: (suggestion) {
+                                          provider.assignSpeakerToConversation(
+                                            suggestion.speakerId,
+                                            suggestion.personId,
+                                            suggestion.personName,
+                                            [suggestion.segmentId],
                                           );
-                                          return NameSpeakerBottomSheet(
-                                            speakerId: speakerId,
-                                            segmentId: segmentId,
-                                            segments: provider.segments,
-                                            suggestion: suggestion,
-                                            onSpeakerAssigned: (speakerId, personId, personName, segmentIds) async {
-                                              await provider.assignSpeakerToConversation(
-                                                speakerId,
-                                                personId,
-                                                personName,
-                                                segmentIds,
+                                        },
+                                        editSegment: (segmentId, speakerId) {
+                                          final connectivityProvider = Provider.of<ConnectivityProvider>(
+                                            context,
+                                            listen: false,
+                                          );
+                                          if (!connectivityProvider.isConnected) {
+                                            ConnectivityProvider.showNoInternetDialog(context);
+                                            return;
+                                          }
+                                          showModalBottomSheet(
+                                            context: context,
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.black,
+                                            shape: const RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                            ),
+                                            builder: (context) {
+                                              final suggestion = provider.suggestionsBySegmentId.values.firstWhere(
+                                                (s) => s.speakerId == speakerId,
+                                                orElse: () => SpeakerLabelSuggestionEvent.empty(),
+                                              );
+                                              return NameSpeakerBottomSheet(
+                                                speakerId: speakerId,
+                                                segmentId: segmentId,
+                                                segments: provider.segments,
+                                                suggestion: suggestion,
+                                                onSpeakerAssigned: (speakerId, personId, personName, segmentIds) async {
+                                                  await provider.assignSpeakerToConversation(
+                                                    speakerId,
+                                                    personId,
+                                                    personName,
+                                                    segmentIds,
+                                                  );
+                                                },
                                               );
                                             },
                                           );
                                         },
                                       );
-                                    },
-                                  ),
+                          },
+                        ),
                         // Summary Tab
                         Center(
                           child: Padding(

@@ -147,6 +147,9 @@ extension FlutterError: Error {}
     // Register Phone Calls plugin
     PhoneCallsPlugin.register(with: self.registrar(forPlugin: "PhoneCallsPlugin")!)
 
+    // Register BLE Audio STT plugin
+    BleAudioSttPlugin.register(with: self.registrar(forPlugin: "BleAudioSttPlugin")!)
+
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     }

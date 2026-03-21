@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -97,6 +98,31 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
       }
     }
     notifyListeners();
+  }
+
+  /// Returns a broadcast stream of raw BLE audio bytes from the connected device.
+  /// Returns an empty stream if no device is connected.
+  /// Uses [ServiceManager] to get the device connection (same mechanism as
+  /// CaptureProvider's private _getBleAudioBytesListener).
+  Stream<Uint8List> getBleAudioStream() {
+    final device = connectedDevice;
+    if (device == null) return const Stream.empty();
+
+    final controller = StreamController<Uint8List>.broadcast();
+    ServiceManager.instance().device.ensureConnection(device.id).then((connection) {
+      if (connection == null) {
+        controller.close();
+        return;
+      }
+      connection.getBleAudioBytesListener(
+        onAudioBytesReceived: (bytes) {
+          if (!controller.isClosed) {
+            controller.add(Uint8List.fromList(bytes));
+          }
+        },
+      );
+    });
+    return controller.stream;
   }
 
   // TODO: thinh, use connection directly
@@ -198,9 +224,8 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     // Throttle notifyListeners to reduce battery drain from excessive UI rebuilds
     // Only notify when: first reading, >=5% change, 15min elapsed, or crosses 20% threshold
     final delta = (_lastNotifiedBatteryLevel - value).abs();
-    final elapsed = _lastBatteryNotifyTime == null
-        ? const Duration(minutes: 999)
-        : currentTime.difference(_lastBatteryNotifyTime!);
+    final elapsed =
+        _lastBatteryNotifyTime == null ? const Duration(minutes: 999) : currentTime.difference(_lastBatteryNotifyTime!);
     final crossedLowBatteryThreshold =
         (value < 20 && _lastNotifiedBatteryLevel >= 20) || (value >= 20 && _lastNotifiedBatteryLevel < 20);
     final shouldNotify =

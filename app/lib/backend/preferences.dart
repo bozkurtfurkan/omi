@@ -684,4 +684,8 @@ class SharedPreferencesUtil {
   Future<bool> remove(String key) async => await _preferences?.remove(key) ?? false;
 
   Future<bool> clear() async => await _preferences?.clear() ?? false;
+
+  //------------ Offline Mode -----------
+  bool get offlineModeEnabled => getBool('offlineModeEnabled');
+  Future<bool> setOfflineModeEnabled(bool v) => saveBool('offlineModeEnabled', v);
 }

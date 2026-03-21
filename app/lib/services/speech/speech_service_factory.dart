@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:omi/backend/preferences.dart';
 import 'speech_service.dart';
 import 'platform_speech_service_ios.dart';
 import 'platform_speech_service_android.dart';
 import 'vosk_speech_service.dart';
+import 'ble_audio_speech_service_ios.dart';
 
 class SpeechServiceFactory {
   /// Creates the appropriate SpeechService for the current platform.
@@ -14,6 +16,9 @@ class SpeechServiceFactory {
   /// Android API < 31 → VoskSpeechService (stub — deferred)
   static Future<SpeechService> create() async {
     if (Platform.isIOS) {
+      if (SharedPreferencesUtil().offlineModeEnabled) {
+        return BleAudioSpeechServiceIos();
+      }
       return PlatformSpeechServiceIos();
     }
 

@@ -60,6 +60,10 @@ import 'package:omi/providers/usage_provider.dart';
 import 'package:omi/providers/user_provider.dart';
 import 'package:omi/providers/voice_recorder_provider.dart';
 import 'package:omi/providers/phone_call_provider.dart';
+import 'package:omi/providers/local_capture_provider.dart';
+import 'package:omi/database/app_database.dart';
+import 'package:omi/services/speech/speech_service.dart';
+import 'package:omi/services/speech/speech_service_factory.dart';
 // TODO: service removed - import 'package:omi/services/auth_service.dart';
 // TODO: service removed - import 'package:omi/services/notifications.dart';
 // TODO: service removed - import 'package:omi/services/notifications/action_item_notification_handler.dart';
@@ -77,7 +81,13 @@ import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 
-Future _init() async {
+class _AppDeps {
+  final SpeechService speech;
+  final AppDatabase db;
+  const _AppDeps({required this.speech, required this.db});
+}
+
+Future<_AppDeps> _init() async {
   // Env
   if (PlatformService.isWindows) {
     // Windows does not support flavors`
@@ -100,7 +110,9 @@ Future _init() async {
 
   // TODO: service removed - FCM background message handler removed
 
-  // TODO: service removed - await SharedPreferencesUtil.init();
+  await SharedPreferencesUtil.init();
+  final speech = await SpeechServiceFactory.create();
+  final db = AppDatabase();
 
   // TODO: service removed - TestFlight environment detection removed
 
@@ -118,7 +130,7 @@ Future _init() async {
   await CrashlyticsManager.init();
 
   await ServiceManager.instance().start();
-  return;
+  return _AppDeps(speech: speech, db: db);
 }
 
 void main() {
@@ -129,8 +141,8 @@ void main() {
     } else {
       WidgetsFlutterBinding.ensureInitialized();
     }
-    await _init();
-    runApp(const MyApp());
+    final deps = await _init();
+    runApp(MyApp(deps: deps));
   }, (error, stack) {
     // TODO: service removed - FirebaseCrashlytics removed
     Logger.debug('Unhandled error: $error\n$stack');
@@ -138,7 +150,8 @@ void main() {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final _AppDeps deps;
+  const MyApp({super.key, required this.deps});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -241,6 +254,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider(create: (context) => FolderProvider()),
         ChangeNotifierProvider(create: (context) => LocaleProvider()),
         ChangeNotifierProvider(create: (context) => VoiceRecorderProvider()),
+        ChangeNotifierProvider(
+          create: (_) => LocalCaptureProvider(
+            speechService: widget.deps.speech,
+            database: widget.deps.db,
+          ),
+        ),
         ChangeNotifierProvider(create: (context) => AnnouncementProvider()),
         ChangeNotifierProvider(create: (context) => PhoneCallProvider()),
       ],

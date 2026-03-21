@@ -19,6 +19,7 @@ class LocalCaptureProvider extends ChangeNotifier {
   String currentTranscript = '';
   bool isRecording = false;
   bool isPaused = false;
+  String? transcriptError;
 
   DateTime? _recordingStartTime;
   StreamSubscription<String>? _transcriptSub;
@@ -35,6 +36,7 @@ class LocalCaptureProvider extends ChangeNotifier {
     if (isRecording) return;
     await _speechService.initialize();
     currentTranscript = '';
+    transcriptError = null;
     _recordingStartTime = DateTime.now();
     isRecording = true;
     isPaused = false;
@@ -98,7 +100,10 @@ class LocalCaptureProvider extends ChangeNotifier {
         currentTranscript = currentTranscript.isEmpty ? segment : '$currentTranscript $segment';
         notifyListeners();
       },
-      onError: (_) => notifyListeners(),
+      onError: (e) {
+        transcriptError = e.toString();
+        notifyListeners();
+      },
     );
   }
 
