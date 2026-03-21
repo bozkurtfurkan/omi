@@ -12,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:omi/utils/enums.dart';
 
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
@@ -811,7 +812,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
                             ),
                             Consumer2<CaptureProvider, LocalCaptureProvider>(
                               builder: (_, capture, local, __) {
-                                final isRecording = capture.isRecording || local.isRecording;
+                                final isRecording = capture.recordingState != RecordingState.stop || local.isRecording;
                                 return Switch(
                                   value: _offlineModeEnabled,
                                   onChanged: isRecording
