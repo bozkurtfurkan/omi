@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/app.dart';
+import 'package:omi/backend/schema/app.dart';
 import 'package:omi/l10n/app_localizations.dart';
 
 /// Helper extension to get localized titles for app schema classes.

@@ -5,8 +5,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/providers/sync_provider.dart';
@@ -18,7 +18,7 @@ import 'package:omi/utils/other/time_utils.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 import 'package:omi/widgets/device_widget.dart';
 import 'package:omi/widgets/dialog.dart';
-import 'package:omi/pages/conversations/sync_page.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/sync_page.dart';
 import 'firmware_update.dart';
 import 'omiglass_ota_update.dart';
 
@@ -258,7 +258,7 @@ class _ConnectedDeviceState extends State<ConnectedDevice> {
               chipColor: pendingSeconds > 0 ? const Color(0xFF3D3520) : null,
               chipTextColor: pendingSeconds > 0 ? const Color(0xFFFFD060) : null,
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SyncPage()));
+                // SyncPage removed - offline app
               },
             ),
           ],
@@ -267,7 +267,7 @@ class _ConnectedDeviceState extends State<ConnectedDevice> {
           GestureDetector(
             onTap: () async {
               if (PlatformService.isIntercomSupported) {
-                await IntercomManager.instance.displayChargingArticle(provider.pairedDevice?.name ?? 'DevKit1');
+                IntercomManager.instance.displayChargingArticle();
               } else {
                 final deviceName = provider.pairedDevice?.name ?? 'DevKit1';
                 String url;

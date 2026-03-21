@@ -9,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/widgets/extensions/string.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
@@ -58,7 +58,7 @@ class _ShareToContactsBottomSheetState extends State<ShareToContactsBottomSheet>
   void initState() {
     super.initState();
     // Track sheet opened
-    MixpanelManager().shareToContactsSheetOpened(widget.conversation.id);
+    MixpanelManager().shareToContactsSheetOpened();
     _loadContacts();
   }
 
@@ -153,7 +153,7 @@ class _ShareToContactsBottomSheetState extends State<ShareToContactsBottomSheet>
     // Track selection changes
     final selectedCount = _selectedContacts.length;
     if (selectedCount > 0) {
-      MixpanelManager().shareToContactsSelected(widget.conversation.id, selectedCount);
+      MixpanelManager().shareToContactsSelected();
     }
   }
 
@@ -170,18 +170,8 @@ class _ShareToContactsBottomSheetState extends State<ShareToContactsBottomSheet>
 
     try {
       // First, set conversation to shared visibility
-      final shared = await setConversationVisibility(widget.conversation.id);
-      if (!shared) {
-        if (!mounted) return;
-        setState(() {
-          _isPreparingShare = false;
-          _errorMessage = context.l10n.failedToPrepareConversationForSharing;
-        });
-        return;
-      }
-      if (mounted) {
-        context.read<ConversationDetailProvider>().updateVisibilityLocally(ConversationVisibility.shared);
-      }
+      // setConversationVisibility removed - offline app
+      const shared = true;
 
       // Build the share link and message
       final shareLink = 'https://h.omi.me/conversations/${widget.conversation.id}';
@@ -204,7 +194,7 @@ class _ShareToContactsBottomSheetState extends State<ShareToContactsBottomSheet>
       // Launch native SMS app
       if (await canLaunchUrl(smsUri)) {
         // Track SMS opened
-        MixpanelManager().shareToContactsSmsOpened(widget.conversation.id, selected.length);
+        MixpanelManager().shareToContactsSmsOpened();
         HapticFeedback.mediumImpact();
         Navigator.of(context).pop();
         await launchUrl(smsUri);

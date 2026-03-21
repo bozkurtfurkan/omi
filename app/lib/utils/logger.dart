@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-// TODO: service removed - import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-// TODO: service removed - import 'package:intercom_flutter/intercom_flutter.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+import 'package:omi/utils/analytics/intercom.dart';
 import 'package:omi/utils/debug_log_manager.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
@@ -12,12 +11,12 @@ class CrashlyticsTalkerObserver extends TalkerObserver {
 
   @override
   void onError(err) {
-    FirebaseCrashlytics.instance.recordError(err.error, err.stackTrace, reason: err.message);
+    // No-op: offline app (was FirebaseCrashlytics)
   }
 
   @override
   void onException(err) {
-    FirebaseCrashlytics.instance.recordError(err.exception, err.stackTrace, reason: err.message);
+    // No-op: offline app (was FirebaseCrashlytics)
   }
 }
 
@@ -82,8 +81,7 @@ class LoggerSnackbar extends StatelessWidget {
         trailing: IconButton(
           icon: const Icon(Icons.share, color: Colors.white),
           onPressed: () async {
-            // TODO: Have a custom form which can be prefilled with the error stack trace instead of opening the Gleap Homepage
-            await Intercom.instance.displayMessenger();
+            await IntercomManager.instance.displayMessenger();
           },
         ),
       ),

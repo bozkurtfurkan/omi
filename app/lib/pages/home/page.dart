@@ -14,24 +14,25 @@ import 'package:provider/provider.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/agents.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/app.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
-// TODO: service removed - import 'package:omi/backend/schema/geolocation.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/app.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/geolocation.dart';
 import 'package:omi/main.dart';
 import 'package:omi/pages/conversation_capturing/page.dart';
 import 'package:omi/pages/conversation_detail/page.dart';
 import 'package:omi/pages/conversations/conversations_page.dart';
-import 'package:omi/pages/conversations/sync_page.dart';
-import 'package:omi/pages/conversations/widgets/merge_action_bar.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/sync_page.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/merge_action_bar.dart';
 import 'package:omi/pages/memories/page.dart';
 import 'package:omi/models/subscription.dart';
 import 'package:omi/providers/usage_provider.dart';
-import 'package:omi/pages/settings/daily_summary_detail_page.dart';
-import 'package:omi/pages/settings/data_privacy_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/daily_summary_detail_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/data_privacy_page.dart';
 import 'package:omi/pages/settings/settings_drawer.dart';
-import 'package:omi/pages/settings/task_integrations_page.dart';
-import 'package:omi/pages/settings/wrapped_2025_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/task_integrations_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/wrapped_2025_page.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/connectivity_provider.dart';
@@ -53,8 +54,8 @@ import 'package:omi/utils/platform/platform_manager.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 import 'package:omi/utils/responsive/responsive_helper.dart';
 import 'package:omi/widgets/calendar_date_picker_sheet.dart';
-import 'package:omi/widgets/freemium_switch_dialog.dart';
-import 'package:omi/widgets/upgrade_alert.dart';
+// TODO: page deleted - import 'package:omi/widgets/freemium_switch_dialog.dart';
+// TODO: page deleted - import 'package:omi/widgets/upgrade_alert.dart';
 import 'package:omi/widgets/bottom_nav_bar.dart';
 import 'widgets/battery_info_widget.dart';
 
@@ -77,15 +78,7 @@ class _HomePageWrapperState extends State<HomePageWrapper> {
       if (mounted) {
         context.read<DeviceProvider>().periodicConnect('coming from HomePageWrapper', boundDeviceOnly: true);
       }
-      if (SharedPreferencesUtil().notificationsEnabled) {
-        NotificationService.instance.register();
-        NotificationService.instance.saveNotificationToken();
-
-        // Schedule daily reflection notification if enabled
-        if (SharedPreferencesUtil().dailyReflectionEnabled) {
-          DailyReflectionNotification.scheduleDailyNotification(channelKey: 'channel');
-        }
-      }
+      // TODO: service removed - NotificationService / DailyReflectionNotification
     });
     _navigateToRoute = widget.navigateToRoute;
     _autoMessage = widget.autoMessage;
@@ -111,7 +104,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   ForegroundUtil foregroundUtil = ForegroundUtil();
   List<Widget> screens = [Container(), const SizedBox(), const SizedBox(), const SizedBox()];
 
-  final _upgrader = MyUpgrader(debugLogging: false, debugDisplayOnce: false);
+  // TODO: deleted - final _upgrader = MyUpgrader(debugLogging: false, debugDisplayOnce: false);
   bool scriptsInProgress = false;
   StreamSubscription? _notificationStreamSubscription;
 
@@ -119,8 +112,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   final GlobalKey<State<MemoriesPage>> _memoriesPageKey = GlobalKey<State<MemoriesPage>>();
   late final List<Widget> _pages;
 
-  // Freemium switch handler for auto-switch dialogs
-  final FreemiumSwitchHandler _freemiumHandler = FreemiumSwitchHandler();
+  // Stub freemium handler (deleted)
+  final _freemiumHandler = _FreemiumHandlerStub();
 
   CaptureProvider? _captureProvider;
 
@@ -179,7 +172,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
 
       // Ensure agent VM is running and restart keepalive
       if (mounted && SharedPreferencesUtil().claudeAgentEnabled) {
-        ensureAgentVm();
+        // TODO: deleted - ensureAgentVm();
         Provider.of<MessageProvider>(context, listen: false).startVmKeepalive();
       }
     } else if (state == AppLifecycleState.hidden) {
@@ -200,15 +193,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   void _onReceiveTaskData(dynamic data) async {
     if (data is! Map<String, dynamic>) return;
     if (!(data.containsKey('latitude') && data.containsKey('longitude'))) return;
-    await updateUserGeolocation(
-      geolocation: Geolocation(
-        latitude: data['latitude'],
-        longitude: data['longitude'],
-        accuracy: data['accuracy'],
-        altitude: data['altitude'],
-        time: DateTime.parse(data['time']).toUtc(),
-      ),
-    );
+    // TODO: backend removed - updateUserGeolocation
   }
 
   @override
@@ -220,7 +205,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
       const SizedBox.shrink(),
     ];
     SharedPreferencesUtil().onboardingCompleted = true;
-    updateUserOnboardingState(completed: true);
+    // TODO: backend removed - updateUserOnboardingState(completed: true);
 
     // Navigate uri
     Uri? navigateToUri;
@@ -260,7 +245,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
     // Pre-warm agent VM and WebSocket so session is ready by the time the user opens chat
     if (SharedPreferencesUtil().claudeAgentEnabled) {
       print('[HomePage] claudeAgentEnabled=true, calling ensureAgentVm + starting keepalive + preConnectAgent');
-      ensureAgentVm();
+      // TODO: deleted - ensureAgentVm();
       final messageProvider = Provider.of<MessageProvider>(context, listen: false);
       messageProvider.startVmKeepalive();
       messageProvider.preConnectAgent();
@@ -300,9 +285,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
               SettingsDrawer.show(context);
             }
           });
-          if (detailPageId == 'data-privacy') {
-            MyApp.navigatorKey.currentState?.push(MaterialPageRoute(builder: (context) => const DataPrivacyPage()));
-          }
+          // TODO: page deleted - DataPrivacyPage
           break;
         case "facts":
           MyApp.navigatorKey.currentState?.push(MaterialPageRoute(builder: (context) => const MemoriesPage()));
@@ -317,8 +300,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
             WidgetsBinding.instance.addPostFrameCallback((_) async {
               if (!mounted) return;
 
-              // Fetch conversation from server
-              final conversation = await getConversationById(conversationId);
+              // TODO: backend removed - getConversationById
+              final ServerConversation? conversation = null;
               if (conversation != null && mounted) {
                 Navigator.push(
                   context,
@@ -336,27 +319,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
         case "daily-summary":
           if (detailPageId != null && detailPageId.isNotEmpty) {
             // Track notification opened
-            MixpanelManager().dailySummaryNotificationOpened(
-              summaryId: detailPageId,
-              date: '', // Date not available in navigate_to, will be fetched when detail page loads
-            );
+            MixpanelManager().dailySummaryNotificationOpened();
 
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => DailySummaryDetailPage(summaryId: detailPageId!)),
-                );
-              }
-            });
+            // TODO: page deleted - DailySummaryDetailPage
           }
           break;
         case "wrapped":
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const Wrapped2025Page()));
-            }
-          });
+          // TODO: page deleted - Wrapped2025Page
           break;
         case "action-items":
           // Tab index already set to 1 (ActionItemsPage) above
@@ -424,30 +393,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   void _onCaptureProviderChanged() {
     if (!mounted || _captureProvider == null) return;
 
-    _freemiumHandler.checkAndShowDialog(context, _captureProvider!).catchError((e) {
-      Logger.debug('[Freemium] Error checking dialog: $e');
-      return false;
-    });
+    // TODO: deleted - _freemiumHandler.checkAndShowDialog
   }
 
   void _listenToMessagesFromNotification() {
-    _notificationStreamSubscription = NotificationService.instance.listenForServerMessages.listen((message) {
-      if (mounted) {
-        var selectedApp = Provider.of<AppProvider>(context, listen: false).getSelectedApp();
-        if (selectedApp == null || message.appId == selectedApp.id) {
-          Provider.of<MessageProvider>(context, listen: false).addMessage(message);
-        }
-        // chatPageKey.currentState?.scrollToBottom();
-      }
-    });
+    // TODO: service removed - NotificationService
   }
 
   @override
   Widget build(BuildContext context) {
-    return MyUpgradeAlert(
-      upgrader: _upgrader,
-      dialogStyle: Platform.isIOS ? UpgradeDialogStyle.cupertino : UpgradeDialogStyle.material,
-      child: Consumer<ConnectivityProvider>(
+    return Consumer<ConnectivityProvider>(
         builder: (ctx, connectivityProvider, child) {
           bool isConnected = connectivityProvider.isConnected;
           previousConnection ??= true;
@@ -581,9 +536,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                           );
                         },
                       ),
-                      // Merge action bar - floats above bottom nav when in selection mode
-                      if (homeProvider.selectedIndex == 0)
-                        const Positioned(left: 0, right: 0, bottom: 0, child: MergeActionBar()),
+                      // MergeActionBar deleted
                     ],
                   ),
                 ),
@@ -591,8 +544,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
             );
           },
         ),
-      ),
-    );
+      );
   }
 
   Future<void> _handleRecordButtonPress(BuildContext context, CaptureProvider captureProvider) async {
@@ -642,7 +594,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                 builder: (context, homeProvider, deviceProvider, syncProvider, child) {
                   final device = deviceProvider.pairedDevice;
                   // Only show orange indicator for files still on device (SD card or Limitless)
-                  final hasPendingOnDevice = syncProvider.missingWalsOnDevice.isNotEmpty;
+                  final hasPendingOnDevice = syncProvider.missingWalsOnDevice > 0;
                   final isSyncing = syncProvider.isSyncing;
 
                   // Show sync icon only on home page and if there's a paired device OR if there are pending files on device
@@ -650,7 +602,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                     return GestureDetector(
                       onTap: () {
                         HapticFeedback.mediumImpact();
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SyncPage()));
+                        // SyncPage deleted
+                        Logger.debug('SyncPage navigation removed');
                       },
                       child: Container(
                         width: 36,
@@ -804,7 +757,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                                                     );
                                                     Navigator.of(context).pop();
                                                     await provider.filterConversationsByDate(selectedDate);
-                                                    MixpanelManager().calendarFilterApplied(selectedDate);
+                                                    MixpanelManager().calendarFilterApplied();
                                                   },
                                                   child: Text(
                                                     context.l10n.done,
@@ -912,4 +865,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
     ForegroundUtil.stopForegroundTask();
     super.dispose();
   }
+}
+
+/// Stub for deleted FreemiumSwitchHandler
+class _FreemiumHandlerStub {
+  void resetDialogFlag() {}
+  void dispose() {}
+  void checkAndShowDialog() {}
 }

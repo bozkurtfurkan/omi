@@ -2,15 +2,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/core/app_shell.dart';
 // TODO: service removed - import 'package:omi/services/auth_service.dart';
 import 'package:omi/pages/settings/developer.dart';
-import 'package:omi/pages/settings/notifications_settings_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/notifications_settings_page.dart';
 import 'package:omi/pages/settings/profile.dart';
-import 'package:omi/pages/settings/integrations_page.dart';
-import 'package:omi/pages/settings/fair_use_page.dart';
-import 'package:omi/pages/settings/usage_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/integrations_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/fair_use_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/usage_page.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/providers/usage_provider.dart';
 import 'package:omi/models/subscription.dart';
@@ -26,8 +26,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/announcements.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'device_settings.dart';
-import 'phone_call_settings_page.dart';
-import '../conversations/sync_page.dart';
+// TODO: page deleted - import 'phone_call_settings_page.dart';
+// TODO: page deleted - import '../conversations/sync_page.dart';
 
 enum SettingsMode { no_device, omi }
 
@@ -292,7 +292,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                   title: context.l10n.notifications,
                   icon: const FaIcon(FontAwesomeIcons.solidBell, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {
-                    routeToPage(context, const NotificationsSettingsPage());
+                    // NotificationsSettingsPage removed - offline app
                   },
                 ),
                 const Divider(height: 1, color: Color(0xFF3C3C43)),
@@ -328,7 +328,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             )
                           : null,
                       onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const UsagePage()));
+                        // UsagePage removed - offline app
                       },
                     );
                   },
@@ -338,7 +338,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                   title: context.l10n.fairUsePolicy,
                   icon: const FaIcon(FontAwesomeIcons.scaleBalanced, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const FairUsePage()));
+                    // FairUsePage removed - offline app
                   },
                 ),
                 const Divider(height: 1, color: Color(0xFF3C3C43)),
@@ -346,7 +346,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                   title: context.l10n.offlineSync,
                   icon: const FaIcon(FontAwesomeIcons.solidCloud, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SyncPage()));
+                    // SyncPage removed - offline app
                   },
                 ),
                 Consumer<DeviceProvider>(
@@ -374,7 +374,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                   icon: const FaIcon(FontAwesomeIcons.networkWired, color: Color(0xFF8E8E93), size: 20),
                   showBetaTag: true,
                   onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const IntegrationsPage()));
+                    // IntegrationsPage removed - offline app
                   },
                 ),
                 Consumer<UsageProvider>(
@@ -390,7 +390,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                           onTap: () {
                             Navigator.of(
                               context,
-                            ).push(MaterialPageRoute(builder: (context) => const PhoneCallSettingsPage()));
+                            ).push(MaterialPageRoute(builder: (context) => const SizedBox())); // PhoneCallSettingsPage removed
                           },
                         ),
                       ],
@@ -478,7 +478,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                           () async {
                             Navigator.of(ctx).pop();
                             await SharedPreferencesUtil().clear();
-                            await AuthService.instance.signOut();
+                            // AuthService removed - offline app
                             if (context.mounted) {
                               routeToPage(context, const AppShell(), replace: true);
                             }
@@ -513,7 +513,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
               title: context.l10n.needHelpChatWithUs,
               icon: const FaIcon(FontAwesomeIcons.solidComments, color: Color(0xFF8E8E93), size: 20),
               onTap: () async {
-                await Intercom.instance.displayMessenger();
+                // Intercom removed - offline app
               },
             ),
           ],
@@ -539,7 +539,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       () async {
                         Navigator.of(ctx).pop(); // Close dialog first
                         SharedPreferencesUtil().hasOmiDevice = null;
-                        await AuthService.instance.signOut();
+                        // AuthService removed - offline app
                         if (context.mounted) {
                           routeToPage(context, const AppShell(), replace: true);
                         }

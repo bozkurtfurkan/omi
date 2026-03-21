@@ -146,7 +146,7 @@ class _ConversationDisplaySettingsState extends State<ConversationDisplaySetting
                 child: GestureDetector(
                   onTap: () {
                     provider.setShortConversationThreshold(threshold.$1);
-                    MixpanelManager().shortConversationThresholdChanged(threshold.$1);
+                    MixpanelManager().shortConversationThresholdChanged();
                     setState(() {});
                   },
                   child: Container(

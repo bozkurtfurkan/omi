@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/device.dart';
 import 'package:omi/utils/l10n_extensions.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/main.dart';
 import 'package:omi/pages/home/firmware_update.dart';
 import 'package:omi/pages/home/omiglass_ota_update.dart';
@@ -164,10 +164,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
         if (batteryLevel < 20 && !_hasLowBatteryAlerted) {
           _hasLowBatteryAlerted = true;
           final ctx = MyApp.navigatorKey.currentContext;
-          NotificationService.instance.createNotification(
-            title: ctx?.l10n.lowBatteryAlertTitle ?? "Low Battery Alert",
-            body: ctx?.l10n.lowBatteryAlertBody ?? "Your device is running low on battery. Time for a recharge! 🔋",
-          );
+          // TODO: backend removed - NotificationService low battery notification
         } else if (batteryLevel > 20) {
           _hasLowBatteryAlerted = false;
         }
@@ -369,10 +366,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     _disconnectNotificationTimer?.cancel();
     _disconnectNotificationTimer = Timer(const Duration(seconds: 30), () {
       final ctx = MyApp.navigatorKey.currentContext;
-      NotificationService.instance.createNotification(
-        title: ctx?.l10n.deviceDisconnectedNotificationTitle ?? 'Your Omi Device Disconnected',
-        body: ctx?.l10n.deviceDisconnectedNotificationBody ?? 'Please reconnect to continue using your Omi.',
-      );
+      // TODO: backend removed - NotificationService disconnect notification
     });
     MixpanelManager().deviceDisconnected();
     BatteryWidgetService().updateBatteryInfo(
@@ -394,12 +388,8 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     }
 
     var device = pairedDevice!;
-    var latestFirmwareDetails = await getLatestFirmwareVersion(
-      deviceModelNumber: device.modelNumber,
-      firmwareRevision: device.firmwareRevision,
-      hardwareRevision: device.hardwareRevision,
-      manufacturerName: device.manufacturerName,
-    );
+    // TODO: backend removed - getLatestFirmwareVersion API call
+    Map<String, dynamic> latestFirmwareDetails = {};
 
     var (message, hasUpdate, version) = await DeviceUtils.shouldUpdateFirmware(
       currentFirmware: device.firmwareRevision,
@@ -411,7 +401,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   void _onDeviceConnected(BtDevice device) async {
     Logger.debug('_onConnected inside: $connectedDevice');
     _disconnectNotificationTimer?.cancel();
-    NotificationService.instance.clearNotification(1);
+    // TODO: backend removed - NotificationService.instance.clearNotification(1);
     setConnectedDevice(device);
 
     if (captureProvider != null) {

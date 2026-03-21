@@ -22,7 +22,7 @@ import 'package:provider/provider.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/shared.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/core/app_shell.dart';
 import 'package:omi/env/dev_env.dart';
 import 'package:omi/env/env.dart';
@@ -32,7 +32,7 @@ import 'package:omi/env/prod_env.dart';
 import 'package:omi/flavors.dart';
 import 'package:omi/l10n/app_localizations.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
-import 'package:omi/pages/settings/ai_app_generator_provider.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/ai_app_generator_provider.dart';
 import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/announcement_provider.dart';
 import 'package:omi/providers/app_provider.dart';
@@ -228,11 +228,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ),
         ChangeNotifierProvider(create: (context) => DeveloperModeProvider()..initialize()),
         ChangeNotifierProvider(create: (context) => McpProvider()),
-        ChangeNotifierProxyProvider<AppProvider, AiAppGeneratorProvider>(
-          create: (context) => AiAppGeneratorProvider(),
-          update: (BuildContext context, value, AiAppGeneratorProvider? previous) =>
-              (previous?..setAppProvider(value)) ?? AiAppGeneratorProvider(),
-        ),
         ChangeNotifierProxyProvider<ConnectivityProvider, MemoriesProvider>(
           create: (context) => MemoriesProvider(),
           update: (context, connectivity, previous) =>

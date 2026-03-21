@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:version/version.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/devices/device_connection.dart';
 import 'package:omi/services/devices/models.dart';
@@ -495,7 +495,8 @@ class OmiDeviceConnection extends DeviceConnection {
               pow(accelerometerData[0], 2) + pow(accelerometerData[1], 2) + pow(accelerometerData[2], 2),
             );
             if (fall_number > 30.0) {
-              await NotificationUtil.triggerFallNotification();
+              // NotificationUtil removed - fall detection notification stubbed
+              Logger.debug('Fall detected! (notification stubbed)');
             }
           }
         }

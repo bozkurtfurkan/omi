@@ -1,4 +1,4 @@
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/services/wals.dart';
 
 enum SyncStatus { idle, syncing, fetchingConversations, completed, error }

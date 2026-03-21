@@ -5,8 +5,8 @@ import 'package:collection/collection.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/folder.dart';
-import 'package:omi/pages/conversations/widgets/create_folder_sheet.dart';
+import 'package:omi/backend/schema/folder.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/create_folder_sheet.dart';
 import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/providers/folder_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
@@ -91,10 +91,7 @@ class _FolderTabsState extends State<FolderTabs> {
         skipFolderTracking: true,
         onTap: () {
           // Track starred filter toggle with the NEW state (opposite of current)
-          MixpanelManager().starredFilterToggled(
-            enabled: !widget.showStarredOnly,
-            selectedFolderId: widget.selectedFolderId,
-          );
+          MixpanelManager().starredFilterToggled();
           widget.onStarredToggle();
         },
       ),
@@ -281,7 +278,7 @@ class _AddFolderButton extends StatelessWidget {
         onTap: () async {
           HapticFeedback.mediumImpact();
           MixpanelManager().createFolderButtonClicked();
-          await showCreateFolderBottomSheet(context);
+          // showCreateFolderBottomSheet removed - offline app
         },
         child: Container(
           width: 32,
@@ -302,7 +299,7 @@ class _FolderContextMenu extends StatelessWidget {
 
   Future<void> _handleEdit(BuildContext context) async {
     Navigator.pop(context);
-    await showCreateFolderBottomSheet(context, folderToEdit: folder);
+    // showCreateFolderBottomSheet removed - offline app
   }
 
   Future<void> _handleDelete(BuildContext context) async {
@@ -328,18 +325,11 @@ class _FolderContextMenu extends StatelessWidget {
             folderId: folder.id,
             folderName: folder.name,
             conversationCount: folder.conversationCount,
-            moveToFolderId: moveToFolderId,
           );
 
           // Fire and forget - don't wait
-          folderProvider.deleteFolder(folder.id, moveToFolderId: moveToFolderId).then((success) {
-            if (success) {
-              // Refresh conversations to show updated folder contents
-              conversationProvider.filterByFolder(moveToFolderId);
-            } else {
-              scaffoldMessenger.showSnackBar(SnackBar(content: Text(context.l10n.failedToDeleteFolder)));
-            }
-          });
+          folderProvider.deleteFolder(folder.id);
+          conversationProvider.filterByFolder(moveToFolderId);
         },
       ),
     );

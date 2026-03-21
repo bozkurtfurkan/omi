@@ -4,10 +4,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/message_event.dart';
-// TODO: service removed - import 'package:omi/backend/schema/person.dart';
-// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/message_event.dart';
+import 'package:omi/backend/schema/person.dart';
+import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/gen/assets.gen.dart';
 import 'package:omi/models/stt_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';

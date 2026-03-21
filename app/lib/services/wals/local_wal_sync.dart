@@ -4,9 +4,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/services/wals/wal.dart';
 import 'package:omi/services/wals/wal_interfaces.dart';
 import 'package:omi/utils/debug_log_manager.dart';
@@ -584,5 +584,12 @@ class LocalWalSyncImpl implements LocalWalSync {
 
     progress?.onWalSyncedProgress(1.0);
     return resp;
+  }
+
+  /// Stub for backend syncLocalFiles API - returns empty response for offline app.
+  Future<SyncLocalFilesResponse> syncLocalFiles(List<File> files) async {
+    // No-op: offline app - backend sync removed
+    Logger.debug('syncLocalFiles stub called with ${files.length} files');
+    return SyncLocalFilesResponse(newConversationIds: [], updatedConversationIds: []);
   }
 }

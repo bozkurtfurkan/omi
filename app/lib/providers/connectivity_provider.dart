@@ -1,60 +1,22 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
-// TODO: service removed - import 'package:omi/services/connectivity_service.dart';
-import 'package:omi/widgets/dialog.dart';
-
+/// Stubbed out - connectivity service deleted for fully offline app.
 class ConnectivityProvider extends ChangeNotifier {
   bool _isConnected = true;
   bool _previousConnection = true;
-  bool _isInitialized = false;
-
-  final ConnectivityService _connectivityService = ConnectivityService();
-  StreamSubscription? _connectionSubscription;
+  bool _isInitialized = true;
 
   bool get isConnected => _isConnected;
   bool get previousConnection => _previousConnection;
   bool get isInitialized => _isInitialized;
 
-  ConnectivityProvider() {
-    init();
-  }
-
-  void init() {
-    _isConnected = _connectivityService.isConnected;
+  void setConnected(bool value) {
     _previousConnection = _isConnected;
-    _isInitialized = true;
-
-    _connectionSubscription = _connectivityService.onConnectionChange.listen(_updateConnectionState);
-  }
-
-  @override
-  void dispose() {
-    _connectionSubscription?.cancel();
-    super.dispose();
-  }
-
-  void _updateConnectionState(bool newIsConnected) {
-    if (_isConnected != newIsConnected) {
-      _previousConnection = _isConnected;
-      _isConnected = newIsConnected;
-      notifyListeners();
-    }
+    _isConnected = value;
+    notifyListeners();
   }
 
   static void showNoInternetDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (c) => getDialog(
-        context,
-        () => Navigator.pop(context),
-        () => Navigator.pop(context),
-        'No Internet Connection',
-        'You need an internet connection to execute this action. Please check your connection and try again.',
-        singleButton: true,
-        okButtonText: 'Ok',
-      ),
-    );
+    // No-op: offline app always works offline
   }
 }

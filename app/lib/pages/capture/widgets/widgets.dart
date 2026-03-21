@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/message_event.dart';
-// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/message_event.dart';
+import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/pages/home/firmware_update.dart';
 import 'package:omi/pages/home/omiglass_ota_update.dart';
 import 'package:omi/providers/capture_provider.dart';

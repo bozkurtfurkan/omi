@@ -6,10 +6,10 @@ import 'dart:typed_data';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/models/stt_response_schema.dart';
 import 'package:omi/models/stt_result.dart';
-// TODO: service removed - import 'package:omi/services/custom_stt_log_service.dart';
+import 'package:omi/services/custom_stt_log_service.dart';
 import 'package:omi/services/sockets/pure_socket.dart';
 import 'package:omi/utils/audio/audio_transcoder.dart';
 import 'package:omi/utils/debug_log_manager.dart';

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-import 'package:omi/pages/settings/change_name_widget.dart';
-import 'package:omi/pages/settings/language_settings_page.dart';
-import 'package:omi/pages/settings/custom_vocabulary_page.dart';
+import 'package:omi/backend/preferences.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/change_name_widget.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/language_settings_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/custom_vocabulary_page.dart';
 import 'package:omi/pages/settings/people.dart';
-import 'package:omi/pages/settings/data_privacy_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/data_privacy_page.dart';
 
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
@@ -14,7 +14,7 @@ import 'package:omi/utils/other/temp.dart';
 
 import 'package:omi/pages/settings/conversation_display_settings.dart';
 
-import 'delete_account.dart';
+// TODO: page deleted - import 'delete_account.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -150,7 +150,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     await showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return const ChangeNameWidget();
+                        return const SizedBox(); // ChangeNameWidget removed
                       },
                     ).whenComplete(() => setState(() {}));
                   },
@@ -169,7 +169,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   title: context.l10n.language,
                   icon: const FaIcon(FontAwesomeIcons.globe, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {
-                    routeToPage(context, const LanguageSettingsPage());
+                    // LanguageSettingsPage removed - offline app
                   },
                 ),
                 const Divider(height: 1, color: Color(0xFF3C3C43)),
@@ -177,7 +177,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   title: context.l10n.customVocabulary,
                   icon: const FaIcon(FontAwesomeIcons.book, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {
-                    routeToPage(context, const CustomVocabularyPage());
+                    // CustomVocabularyPage removed - offline app
                   },
                 ),
               ],
@@ -213,7 +213,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   title: context.l10n.dataPrivacy,
                   icon: const FaIcon(FontAwesomeIcons.shield, color: Color(0xFF8E8E93), size: 20),
                   onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const DataPrivacyPage()));
+                    // DataPrivacyPage removed - offline app
                   },
                 ),
               ],
@@ -245,7 +245,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: const FaIcon(FontAwesomeIcons.exclamationTriangle, color: Colors.red, size: 20),
                   onTap: () {
                     MixpanelManager().pageOpened('Profile Delete Account Dialog');
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const DeleteAccount()));
+                    // DeleteAccount removed - offline app
                   },
                 ),
               ],

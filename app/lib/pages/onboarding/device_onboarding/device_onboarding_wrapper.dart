@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/pages/home/page.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/other/temp.dart';
@@ -51,7 +51,7 @@ class _DeviceOnboardingWrapperState extends State<DeviceOnboardingWrapper> with 
   void _completeOnboarding() {
     // Mark onboarding as completed and go to homepage
     SharedPreferencesUtil().onboardingCompleted = true;
-    updateUserOnboardingState(completed: true);
+    // updateUserOnboardingState removed - offline app
     MixpanelManager().onboardingStepCompleted('Device Onboarding Completed');
     PaintingBinding.instance.imageCache.clear();
     routeToPage(context, const HomePageWrapper(), replace: true);

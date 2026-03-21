@@ -193,7 +193,8 @@ class VoiceRecorderProvider extends ChangeNotifier {
     );
 
     try {
-      final transcript = await transcribeVoiceMessage(audioFile);
+      // TODO: backend removed - transcribeVoiceMessage
+      final String transcript = '';
       _transcript = transcript;
       _state = VoiceRecorderState.transcribeSuccess;
       _isProcessing = false;

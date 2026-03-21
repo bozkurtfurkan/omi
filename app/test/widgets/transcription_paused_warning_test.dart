@@ -8,7 +8,7 @@ import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/l10n/app_localizations.dart';
 import 'package:omi/pages/conversation_capturing/page.dart';
-import 'package:omi/pages/conversations/widgets/processing_capture.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/processing_capture.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/providers/device_provider.dart';
@@ -54,34 +54,7 @@ void main() {
   }
 
   group('transcription paused warning UI', () {
-    testWidgets('shows reconnecting status and indicator in processing capture widget for phone mic', (tester) async {
-      final captureProvider = CaptureProvider();
-      final deviceProvider = _StubDeviceProvider();
-      final connectivityProvider = _StubConnectivityProvider();
-      addTearDown(captureProvider.dispose);
-      addTearDown(deviceProvider.dispose);
-      addTearDown(connectivityProvider.dispose);
-      captureProvider.onConnectionStateChanged(true);
-      captureProvider.updateRecordingState(RecordingState.pause);
-
-      await _pumpLocalizedApp(
-        tester,
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<CaptureProvider>.value(value: captureProvider),
-            ChangeNotifierProvider<ConnectivityProvider>.value(value: connectivityProvider),
-            ChangeNotifierProvider<DeviceProvider>.value(value: deviceProvider),
-          ],
-          child: const ConversationCaptureWidget(),
-        ),
-      );
-
-      final context = tester.element(find.byType(ConversationCaptureWidget));
-      final pausedText = AppLocalizations.of(context).transcriptionPaused;
-
-      expect(find.text(pausedText), findsWidgets);
-      expect(find.byType(ReconnectingStatusIndicator), findsOneWidget);
-    });
+    // Test skipped: ConversationCaptureWidget and ReconnectingStatusIndicator removed (offline app)
 
     testWidgets('shows reconnecting icon and text in conversation capturing app bar when transcript service is down', (
       tester,

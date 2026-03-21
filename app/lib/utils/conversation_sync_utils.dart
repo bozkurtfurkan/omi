@@ -1,5 +1,5 @@
 // TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/conversation.dart';
 
 class ConversationSyncUtils {
   static const Duration _fetchTimeout = Duration(seconds: 30);
@@ -31,7 +31,8 @@ class ConversationSyncUtils {
   }
 
   static Future<ServerConversation?> _fetchSingleConversation(String conversationId) async {
-    return await getConversationById(conversationId);
+    // Backend removed - no server fetch for offline app
+    return null;
   }
 
   static List<SyncedConversationPointer> _createPointers(

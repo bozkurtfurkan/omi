@@ -122,7 +122,7 @@ class _SearchWidgetState extends State<SearchWidget> {
                           final provider = Provider.of<ConversationProvider>(context, listen: false);
                           Navigator.of(context).pop();
                           await provider.filterConversationsByDate(selectedDate);
-                          MixpanelManager().calendarFilterApplied(selectedDate);
+                          MixpanelManager().calendarFilterApplied();
                         },
                         child: Text(
                           context.l10n.done,
@@ -179,7 +179,7 @@ class _SearchWidgetState extends State<SearchWidget> {
                   await provider.searchConversations(value);
                   if (value.isNotEmpty) {
                     // Track search query with results count
-                    MixpanelManager().searchQueryEntered(value, provider.searchedConversations.length);
+                    MixpanelManager().searchQueryEntered(value);
                   }
                 });
                 setShowClearButton();

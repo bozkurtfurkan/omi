@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
 
-// TODO: service removed - import 'package:omi/backend/http/api/agents.dart';
-// TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-import 'package:omi/main.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/providers/base_provider.dart';
-// TODO: service removed - import 'package:omi/services/agent_chat_service.dart';
-// TODO: service removed - import 'package:omi/services/notifications/daily_reflection_notification.dart';
-import 'package:omi/utils/alerts/app_snackbar.dart';
-import 'package:omi/utils/analytics/mixpanel.dart';
-import 'package:omi/utils/l10n_extensions.dart';
-import 'package:omi/utils/logger.dart';
-import 'package:omi/utils/other/validators.dart';
 
+/// Stripped of backend webhook/agent calls for fully offline app.
+/// Keeps local preference toggles that affect app behavior.
 class DeveloperModeProvider extends BaseProvider {
   final TextEditingController webhookOnConversationCreated = TextEditingController();
   final TextEditingController webhookOnTranscriptReceived = TextEditingController();
@@ -34,127 +26,26 @@ class DeveloperModeProvider extends BaseProvider {
   bool followUpQuestionEnabled = false;
   bool transcriptionDiagnosticEnabled = false;
   bool autoCreateSpeakersEnabled = false;
-  bool showGoalTrackerEnabled = true; // Default to true
+  bool showGoalTrackerEnabled = true;
   bool showDailyScoreEnabled = true;
   bool showTasksEnabled = true;
   bool dailyReflectionEnabled = true;
 
-  // VAD Gate (experimental)
   bool vadGateEnabled = false;
-
-  // Claude Agent (experimental)
   bool claudeAgentEnabled = false;
   bool claudeAgentLoading = false;
-  final AgentChatService agentChatService = AgentChatService();
-
-  void onConversationEventsToggled(bool value) {
-    conversationEventsToggled = value;
-    if (!value) {
-      disableWebhook(type: 'memory_created');
-    } else {
-      enableWebhook(type: 'memory_created');
-    }
-    notifyListeners();
-  }
-
-  void onTranscriptsToggled(bool value) {
-    transcriptsToggled = value;
-    if (!value) {
-      disableWebhook(type: 'realtime_transcript');
-    } else {
-      enableWebhook(type: 'realtime_transcript');
-    }
-    notifyListeners();
-  }
-
-  void onAudioBytesToggled(bool value) {
-    audioBytesToggled = value;
-    if (!value) {
-      disableWebhook(type: 'audio_bytes');
-    } else {
-      enableWebhook(type: 'audio_bytes');
-    }
-    notifyListeners();
-  }
-
-  void onDaySummaryToggled(bool value) {
-    daySummaryToggled = value;
-    if (!value) {
-      disableWebhook(type: 'day_summary');
-    } else {
-      enableWebhook(type: 'day_summary');
-    }
-    notifyListeners();
-  }
-
-  Future getWebhooksStatus() async {
-    var res = await webhooksStatus();
-    if (res == null) {
-      conversationEventsToggled = false;
-      transcriptsToggled = false;
-      audioBytesToggled = false;
-      daySummaryToggled = false;
-    } else {
-      conversationEventsToggled = res['memory_created'];
-      transcriptsToggled = res['realtime_transcript'];
-      audioBytesToggled = res['audio_bytes'];
-      daySummaryToggled = res['day_summary'];
-    }
-    SharedPreferencesUtil().conversationEventsToggled = conversationEventsToggled;
-    SharedPreferencesUtil().transcriptsToggled = transcriptsToggled;
-    SharedPreferencesUtil().audioBytesToggled = audioBytesToggled;
-    SharedPreferencesUtil().daySummaryToggled = daySummaryToggled;
-    notifyListeners();
-  }
 
   Future initialize() async {
     setIsLoading(true);
-    webhookOnConversationCreated.text = SharedPreferencesUtil().webhookOnConversationCreated;
-    webhookOnTranscriptReceived.text = SharedPreferencesUtil().webhookOnTranscriptReceived;
-    webhookAudioBytes.text = SharedPreferencesUtil().webhookAudioBytes;
-    webhookAudioBytesDelay.text = SharedPreferencesUtil().webhookAudioBytesDelay;
-    followUpQuestionEnabled = SharedPreferencesUtil().devModeJoanFollowUpEnabled;
-    transcriptionDiagnosticEnabled = SharedPreferencesUtil().transcriptionDiagnosticEnabled;
-    autoCreateSpeakersEnabled = SharedPreferencesUtil().autoCreateSpeakersEnabled;
-    showGoalTrackerEnabled = SharedPreferencesUtil().showGoalTrackerEnabled;
-    showDailyScoreEnabled = SharedPreferencesUtil().showDailyScoreEnabled;
-    showTasksEnabled = SharedPreferencesUtil().showTasksEnabled;
-    dailyReflectionEnabled = SharedPreferencesUtil().dailyReflectionEnabled;
-    vadGateEnabled = SharedPreferencesUtil().vadGateEnabled;
-    claudeAgentEnabled = SharedPreferencesUtil().claudeAgentEnabled;
-    conversationEventsToggled = SharedPreferencesUtil().conversationEventsToggled;
-    transcriptsToggled = SharedPreferencesUtil().transcriptsToggled;
-    audioBytesToggled = SharedPreferencesUtil().audioBytesToggled;
-    daySummaryToggled = SharedPreferencesUtil().daySummaryToggled;
-
-    await Future.wait([
-      getWebhooksStatus(),
-      getUserWebhookUrl(type: 'audio_bytes').then((url) {
-        List<dynamic> parts = url.split(',');
-        if (parts.length == 2) {
-          webhookAudioBytes.text = parts[0].toString();
-          webhookAudioBytesDelay.text = parts[1].toString();
-        } else {
-          webhookAudioBytes.text = url;
-          webhookAudioBytesDelay.text = '5';
-        }
-        SharedPreferencesUtil().webhookAudioBytes = webhookAudioBytes.text;
-        SharedPreferencesUtil().webhookAudioBytesDelay = webhookAudioBytesDelay.text;
-      }),
-      getUserWebhookUrl(type: 'realtime_transcript').then((url) {
-        webhookOnTranscriptReceived.text = url;
-        SharedPreferencesUtil().webhookOnTranscriptReceived = url;
-      }),
-      getUserWebhookUrl(type: 'memory_created').then((url) {
-        webhookOnConversationCreated.text = url;
-        SharedPreferencesUtil().webhookOnConversationCreated = url;
-      }),
-      getUserWebhookUrl(type: 'day_summary').then((url) {
-        webhookDaySummary.text = url;
-        SharedPreferencesUtil().webhookDaySummary = url;
-      }),
-    ]);
-    // getUserWebhookUrl(type: 'audio_bytes_websocket').then((url) => webhookWsAudioBytes.text = url);
+    final prefs = SharedPreferencesUtil();
+    followUpQuestionEnabled = prefs.devModeJoanFollowUpEnabled;
+    transcriptionDiagnosticEnabled = prefs.transcriptionDiagnosticEnabled;
+    autoCreateSpeakersEnabled = prefs.autoCreateSpeakersEnabled;
+    showGoalTrackerEnabled = prefs.showGoalTrackerEnabled;
+    showDailyScoreEnabled = prefs.showDailyScoreEnabled;
+    showTasksEnabled = prefs.showTasksEnabled;
+    dailyReflectionEnabled = prefs.dailyReflectionEnabled;
+    vadGateEnabled = prefs.vadGateEnabled;
     setIsLoading(false);
     notifyListeners();
   }
@@ -163,80 +54,14 @@ class DeveloperModeProvider extends BaseProvider {
     if (savingSettingsLoading) return;
     setIsLoading(true);
     final prefs = SharedPreferencesUtil();
-
-    if (webhookAudioBytes.text.isNotEmpty && !isValidUrl(webhookAudioBytes.text)) {
-      AppSnackbar.showSnackbarError(
-        MyApp.navigatorKey.currentContext?.l10n.devModeInvalidAudioBytesWebhookUrl ?? 'Invalid audio bytes webhook URL',
-      );
-      setIsLoading(false);
-      return;
-    }
-    if (webhookAudioBytes.text.isNotEmpty && webhookAudioBytesDelay.text.isEmpty) {
-      webhookAudioBytesDelay.text = '5';
-    }
-    if (webhookOnTranscriptReceived.text.isNotEmpty && !isValidUrl(webhookOnTranscriptReceived.text)) {
-      AppSnackbar.showSnackbarError(
-        MyApp.navigatorKey.currentContext?.l10n.devModeInvalidRealtimeTranscriptWebhookUrl ??
-            'Invalid realtime transcript webhook URL',
-      );
-      setIsLoading(false);
-      return;
-    }
-    if (webhookOnConversationCreated.text.isNotEmpty && !isValidUrl(webhookOnConversationCreated.text)) {
-      AppSnackbar.showSnackbarError(
-        MyApp.navigatorKey.currentContext?.l10n.devModeInvalidConversationCreatedWebhookUrl ??
-            'Invalid conversation created webhook URL',
-      );
-      setIsLoading(false);
-      return;
-    }
-    if (webhookDaySummary.text.isNotEmpty && !isValidUrl(webhookDaySummary.text)) {
-      AppSnackbar.showSnackbarError(
-        MyApp.navigatorKey.currentContext?.l10n.devModeInvalidDaySummaryWebhookUrl ?? 'Invalid day summary webhook URL',
-      );
-      setIsLoading(false);
-      return;
-    }
-
-    // if (webhookWsAudioBytes.text.isNotEmpty && !isValidWebSocketUrl(webhookWsAudioBytes.text)) {
-    //   AppSnackbar.showSnackbarError('Invalid audio bytes websocket URL');
-    //   savingSettingsLoading = false;
-    //   notifyListeners();
-    //   return;
-    // }
-    var w1 = setUserWebhookUrl(
-      type: 'audio_bytes',
-      url: '${webhookAudioBytes.text.trim()},${webhookAudioBytesDelay.text.trim()}',
-    );
-    var w2 = setUserWebhookUrl(type: 'realtime_transcript', url: webhookOnTranscriptReceived.text.trim());
-    var w3 = setUserWebhookUrl(type: 'memory_created', url: webhookOnConversationCreated.text.trim());
-    var w4 = setUserWebhookUrl(type: 'day_summary', url: webhookDaySummary.text.trim());
-    // var w4 = setUserWebhookUrl(type: 'audio_bytes_websocket', url: webhookWsAudioBytes.text.trim());
-    try {
-      Future.wait([w1, w2, w3, w4]);
-      prefs.webhookAudioBytes = webhookAudioBytes.text;
-      prefs.webhookAudioBytesDelay = webhookAudioBytesDelay.text;
-      prefs.webhookOnTranscriptReceived = webhookOnTranscriptReceived.text;
-      prefs.webhookOnConversationCreated = webhookOnConversationCreated.text;
-      prefs.webhookDaySummary = webhookDaySummary.text;
-    } catch (e) {
-      Logger.error('Error occurred while updating endpoints: $e');
-    }
-    // Experimental
     prefs.devModeJoanFollowUpEnabled = followUpQuestionEnabled;
     prefs.transcriptionDiagnosticEnabled = transcriptionDiagnosticEnabled;
     prefs.autoCreateSpeakersEnabled = autoCreateSpeakersEnabled;
     prefs.showGoalTrackerEnabled = showGoalTrackerEnabled;
     prefs.showDailyScoreEnabled = showDailyScoreEnabled;
     prefs.showTasksEnabled = showTasksEnabled;
-
-    MixpanelManager().settingsSaved(
-      hasWebhookConversationCreated: conversationEventsToggled,
-      hasWebhookTranscriptReceived: transcriptsToggled,
-    );
     setIsLoading(false);
     notifyListeners();
-    AppSnackbar.showSnackbar(MyApp.navigatorKey.currentContext?.l10n.devModeSettingsSaved ?? 'Settings saved!');
   }
 
   void setIsLoading(bool value) {
@@ -261,7 +86,7 @@ class DeveloperModeProvider extends BaseProvider {
 
   void onShowGoalTrackerChanged(var value) {
     showGoalTrackerEnabled = value;
-    SharedPreferencesUtil().showGoalTrackerEnabled = value; // Save immediately
+    SharedPreferencesUtil().showGoalTrackerEnabled = value;
     notifyListeners();
   }
 
@@ -279,15 +104,7 @@ class DeveloperModeProvider extends BaseProvider {
 
   void onDailyReflectionChanged(var value) {
     dailyReflectionEnabled = value;
-    SharedPreferencesUtil().dailyReflectionEnabled = value; // Save immediately
-
-    // Schedule or cancel the notification based on the setting
-    if (value) {
-      DailyReflectionNotification.scheduleDailyNotification(channelKey: 'channel');
-    } else {
-      DailyReflectionNotification.cancelNotification();
-    }
-
+    SharedPreferencesUtil().dailyReflectionEnabled = value;
     notifyListeners();
   }
 
@@ -298,42 +115,26 @@ class DeveloperModeProvider extends BaseProvider {
   }
 
   Future<void> onClaudeAgentChanged(bool value) async {
-    await initAgentLog();
-    agentLog('onClaudeAgentChanged($value)');
-
-    if (value) {
-      claudeAgentLoading = true;
-      notifyListeners();
-
-      try {
-        agentLog('Calling getAgentVmStatus()...');
-        final vmInfo = await getAgentVmStatus();
-        agentLog('getAgentVmStatus() returned: hasVm=${vmInfo?.hasVm}, status=${vmInfo?.status}');
-        if (vmInfo == null || !vmInfo.hasVm) {
-          agentLog('No VM found, aborting enable');
-          AppSnackbar.showSnackbarError('Requires OMI Desktop with agent enabled');
-          claudeAgentLoading = false;
-          notifyListeners();
-          return;
-        }
-
-        claudeAgentEnabled = true;
-        SharedPreferencesUtil().claudeAgentEnabled = true;
-        agentLog('Claude agent ENABLED successfully');
-      } catch (e) {
-        agentLog('ERROR in onClaudeAgentChanged: $e');
-        Logger.error('Failed to check agent VM status: $e');
-        AppSnackbar.showSnackbarError('Failed to check agent VM status');
-      }
-
-      claudeAgentLoading = false;
-    } else {
-      claudeAgentEnabled = false;
-      SharedPreferencesUtil().claudeAgentEnabled = false;
-      await agentChatService.disconnect();
-      agentLog('Claude agent DISABLED');
-    }
-
-    notifyListeners();
+    // No-op: offline app
   }
+
+  void Function(bool)? get onConversationEventsToggled => (bool value) {
+    conversationEventsToggled = value;
+    notifyListeners();
+  };
+
+  void Function(bool)? get onTranscriptsToggled => (bool value) {
+    transcriptsToggled = value;
+    notifyListeners();
+  };
+
+  void Function(bool)? get onAudioBytesToggled => (bool value) {
+    audioBytesToggled = value;
+    notifyListeners();
+  };
+
+  void Function(bool)? get onDaySummaryToggled => (bool value) {
+    daySummaryToggled = value;
+    notifyListeners();
+  };
 }

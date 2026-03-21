@@ -14,7 +14,7 @@ import 'package:uuid/uuid.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/device.dart';
 // TODO: service removed - import 'package:omi/backend/http/shared.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/utils/device.dart';
 import 'package:omi/utils/logger.dart';
@@ -213,12 +213,8 @@ mixin FirmwareMixin<T extends StatefulWidget> on State<T> {
     required String hardwareRevision,
     required String manufacturerName,
   }) async {
-    latestFirmwareDetails = await getLatestFirmwareVersion(
-      deviceModelNumber: deviceModelNumber,
-      firmwareRevision: firmwareRevision,
-      hardwareRevision: hardwareRevision,
-      manufacturerName: manufacturerName,
-    );
+    // getLatestFirmwareVersion removed - offline app
+    latestFirmwareDetails = {};
     if (latestFirmwareDetails['ota_update_steps'] != null) {
       otaUpdateSteps = List<String>.from(latestFirmwareDetails['ota_update_steps']);
     }
@@ -256,57 +252,8 @@ mixin FirmwareMixin<T extends StatefulWidget> on State<T> {
     });
 
     try {
-      final r = await makeRawApiCall(method: 'GET', url: zipUrl);
-      final completer = Completer<void>();
-      final int? totalBytes = r.contentLength;
-
-      List<List<int>> chunks = [];
-      int downloaded = 0;
-
-      r.stream.listen(
-        (List<int> chunk) {
-          chunks.add(chunk);
-          downloaded += chunk.length;
-          if (totalBytes != null && totalBytes > 0) {
-            Logger.debug('downloadPercentage: ${downloaded / totalBytes * 100}');
-            setState(() {
-              downloadProgress = (downloaded / totalBytes * 100).toInt();
-            });
-          }
-        },
-        onDone: () async {
-          try {
-            Logger.debug('downloadPercentage: 100');
-            File file = File('$dir/firmware.zip');
-            final Uint8List bytes = Uint8List(downloaded);
-            int offset = 0;
-            for (List<int> chunk in chunks) {
-              bytes.setRange(offset, offset + chunk.length, chunk);
-              offset += chunk.length;
-            }
-            await file.writeAsBytes(bytes);
-            setState(() {
-              isDownloading = false;
-              isDownloaded = true;
-              downloadProgress = 100;
-            });
-            completer.complete();
-          } catch (e) {
-            completer.completeError(e);
-          }
-        },
-        onError: (error) {
-          Logger.debug('Download error: $error');
-          setState(() {
-            isDownloading = false;
-          });
-          final deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
-          deviceProvider.resetFirmwareUpdateState();
-          completer.completeError(error);
-        },
-      );
-
-      await completer.future;
+      // makeRawApiCall removed - offline app
+      throw Exception('Firmware download not available offline');
     } catch (e) {
       Logger.debug('Download error: $e');
       if (mounted) {

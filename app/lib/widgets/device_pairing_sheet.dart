@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/device_guide.dart';
+import 'package:omi/backend/schema/device_guide.dart';
 import 'package:omi/utils/analytics/intercom.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
@@ -92,7 +92,7 @@ class DevicePairingSheet extends StatelessWidget {
                 // Report an issue
                 GestureDetector(
                   onTap: () async {
-                    MixpanelManager().connectionGuideReportIssue(product.id);
+                    MixpanelManager().connectionGuideReportIssue();
                     onDismissAll();
                     await IntercomManager.instance.intercom.displayMessenger();
                   },

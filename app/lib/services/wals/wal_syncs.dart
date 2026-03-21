@@ -1,8 +1,8 @@
 import 'dart:async';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/models/sync_state.dart';
 // TODO: service removed - import 'package:omi/services/connectivity_service.dart';
 import 'package:omi/services/wals/flash_page_wal_sync.dart';
@@ -295,16 +295,7 @@ class WalSyncs implements IWalSync {
   /// Wait for internet connectivity to be restored (e.g. after WiFi transfer).
   /// Polls every 2 seconds, gives up after 30 seconds.
   Future<void> _waitForInternet() async {
-    final connectivity = ConnectivityService();
-    for (int i = 0; i < 15; i++) {
-      if (connectivity.isConnected) {
-        Logger.debug("WalSyncs: Internet available after ${i * 2}s");
-        DebugLogManager.logInfo('Internet restored after ${i * 2}s');
-        return;
-      }
-      await Future.delayed(const Duration(seconds: 2));
-    }
-    Logger.debug("WalSyncs: Internet not available after 30s, proceeding anyway");
-    DebugLogManager.logWarning('Internet not available after 30s, proceeding anyway');
+    // ConnectivityService removed - offline app, just proceed
+    Logger.debug("WalSyncs: _waitForInternet stub (offline app)");
   }
 }

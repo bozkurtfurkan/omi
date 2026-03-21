@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/audio.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
 
@@ -90,50 +90,9 @@ class _ConversationAudioPlayerWidgetState extends State<ConversationAudioPlayerW
     });
 
     try {
-      final headers = await getAudioHeaders();
-
-      final audioFileIds = widget.conversation.audioFiles.map((af) => af.id).toList();
-      final urls = getConversationAudioUrls(
-        conversationId: widget.conversation.id,
-        audioFileIds: audioFileIds,
-        format: 'wav',
-      );
-
-      // Create concatenating audio source for gapless playback
-      final playlist = ConcatenatingAudioSource(
-        useLazyPreparation: true,
-        children: urls.map((url) {
-          return AudioSource.uri(Uri.parse(url), headers: headers);
-        }).toList(),
-      );
-
-      // Listen for playback errors
-      _errorSubscription?.cancel();
-      _errorSubscription = _audioPlayer.playbackEventStream
-          .handleError((error) {
-            Logger.debug('Playback error: $error');
-            if (mounted && _retryCount < _maxRetries) {
-              _retryCount++;
-              Future.delayed(const Duration(seconds: 1), () {
-                if (mounted) _setupAudioPlayer();
-              });
-            } else if (mounted) {
-              setState(() {
-                _errorMessage = 'Playback error: ${error.toString()}';
-              });
-            }
-          })
-          .listen((_) {});
-
-      await _audioPlayer.setAudioSource(playlist, preload: true);
-
-      _retryCount = 0;
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      // Audio streaming from backend removed - offline app
+      // TODO: implement local audio file playback
+      throw Exception('Audio playback not available offline');
     } catch (e, stackTrace) {
       Logger.debug('Error setting up audio player: $e');
       Logger.debug('Stack trace: $stackTrace');

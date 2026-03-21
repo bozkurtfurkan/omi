@@ -94,7 +94,7 @@ class _SetupQuestionsPageState extends State<SetupQuestionsPage> {
               child: MaterialButton(
                 onPressed: () {
                   if (selectedProfession != null && selectedUsage != null && selectedAge != null) {
-                    MixpanelManager().setUserProperties(selectedProfession!, selectedUsage!, selectedAge!);
+                    MixpanelManager().setUserProperties();
                     // SpeechProfilePage removed
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(

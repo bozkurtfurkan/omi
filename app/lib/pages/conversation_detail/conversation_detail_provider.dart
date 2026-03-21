@@ -9,11 +9,11 @@ import 'package:flutter_provider_utilities/flutter_provider_utilities.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/audio.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/app.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/structured.dart';
-// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/app.dart';
+import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/structured.dart';
+import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
@@ -574,6 +574,67 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
   }
 
   bool _isDisposed = false;
+
+  // --- Stub methods for removed backend API calls ---
+
+  Future<bool> updateConversationSegmentText(String conversationId, String segmentId, String newText) async {
+    // No-op: offline app
+    return true;
+  }
+
+  Future<void> deleteConversationActionItem(String conversationId, ActionItem item) async {
+    // No-op: offline app
+  }
+
+  Future<void> setConversationSummaryRating(String conversationId, int rating) async {
+    // No-op: offline app
+  }
+
+  Future<void> updateConversationTitle(String conversationId, String title) async {
+    // No-op: offline app
+  }
+
+  Future<void> precacheConversationAudio(String conversationId) async {
+    // No-op: offline app
+  }
+
+  Future<bool> getHasConversationSummaryRating(String conversationId) async {
+    // No-op: offline app
+    return false;
+  }
+
+  Future<ServerConversation?> reProcessConversationServer(String conversationId, {String? appId}) async {
+    // No-op: offline app
+    return null;
+  }
+
+  Future<void> assignBulkConversationTranscriptSegments(String conversationId, List<String> segmentIds) async {
+    // No-op: offline app
+  }
+
+  Future<List<App>> getConversationSuggestedApps(String conversationId) async {
+    // No-op: offline app
+    return [];
+  }
+
+  Future<({List<App> apps})> retrieveAppsSearch({bool? installedApps, int? limit}) async {
+    // No-op: offline app
+    return (apps: <App>[]);
+  }
+
+  Future<bool> enableAppServer(String appId) async {
+    // No-op: offline app
+    return false;
+  }
+
+  Future<ServerConversation?> getConversationById(String conversationId) async {
+    // No-op: offline app
+    return null;
+  }
+
+  Future<void> setPreferredSummarizationAppServer(String appId) async {
+    // No-op: offline app
+  }
 
   @override
   void dispose() {

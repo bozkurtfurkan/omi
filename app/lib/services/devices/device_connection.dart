@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/devices/apple_watch_connection.dart';
 import 'package:omi/services/devices/bee_connection.dart';
@@ -531,11 +531,8 @@ abstract class DeviceConnection {
   }
 
   void _showDeviceDisconnectedNotification() {
-    final ctx = MyApp.navigatorKey.currentContext;
+    // NotificationService removed - no push notifications in offline app
     final deviceName = device.name;
-    NotificationService.instance.createNotification(
-      title: ctx?.l10n.deviceDisconnectedTitle(deviceName) ?? '$deviceName Disconnected',
-      body: ctx?.l10n.deviceDisconnectedBody(deviceName) ?? 'Please reconnect to continue using your $deviceName.',
-    );
+    Logger.debug('Device disconnected: $deviceName');
   }
 }

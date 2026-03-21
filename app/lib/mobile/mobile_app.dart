@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/pages/home/page.dart';
 import 'package:omi/pages/onboarding/device_selection.dart';
 import 'package:omi/pages/onboarding/wrapper.dart';

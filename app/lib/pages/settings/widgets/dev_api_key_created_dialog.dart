@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/dev_api_key.dart';
+import 'package:omi/backend/schema/dev_api_key.dart';
 import 'package:omi/utils/alerts/app_snackbar.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 // TODO: service removed - import 'package:omi/services/auth_service.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
@@ -122,7 +122,8 @@ class _NameWidgetState extends State<NameWidget> {
                         ? null
                         : () async {
                             FocusManager.instance.primaryFocus?.unfocus();
-                            AuthService.instance.updateGivenName(nameController.text.trim());
+                            // AuthService removed - offline app
+                            SharedPreferencesUtil().givenName = nameController.text.trim();
                             widget.goNext();
                           },
                     style: ElevatedButton.styleFrom(

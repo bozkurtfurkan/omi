@@ -8,8 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/apps.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/app.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/app.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/widgets/summarized_apps_sheet.dart';
@@ -96,111 +96,11 @@ class _CreateTemplateBottomSheetState extends State<CreateTemplateBottomSheet> {
       final prompt = _promptController.text.trim();
       const category = 'conversation-analysis';
 
-      // Generate description and emoji using AI
-      final result = await getGeneratedDescriptionAndEmoji(name, prompt);
-      final description = result.description;
-      final emoji = result.emoji;
-
-      setState(() {
-        _statusMessage = context.l10n.creatingAppIcon;
-      });
-
-      // Create simple emoji icon
-      final iconFile = await _createEmojiIcon(emoji);
-
-      setState(() {
-        _statusMessage = context.l10n.creatingYourApp;
-      });
-
-      // Prepare app data
-      final Map<String, dynamic> appData = {
-        'name': name,
-        'description': description,
-        'capabilities': ['memories'],
-        'deleted': false,
-        'uid': SharedPreferencesUtil().uid,
-        'category': category,
-        'private': !_isPublic,
-        'is_paid': false,
-        'price': 0.0,
-        'memory_prompt': prompt,
-        'thumbnails': [],
-      };
-
-      // Submit app
-      final submitResult = await submitAppServer(iconFile, appData);
-
-      // Clean up temp icon file
-      if (iconFile.existsSync()) {
-        await iconFile.delete();
-      }
-
-      if (submitResult.$1) {
-        // Success
-        MixpanelManager().quickTemplateCreated(
-          conversationId: widget.conversationId ?? '',
-          appName: name,
-          isPublic: _isPublic,
-        );
-
-        // Refresh apps list
-        if (mounted) {
-          await context.read<AppProvider>().getApps();
-        }
-
-        // Get the created app
-        App? createdApp;
-        if (submitResult.$3 != null && mounted) {
-          final appDetails = await getAppDetailsServer(submitResult.$3!);
-          if (appDetails != null) {
-            createdApp = App.fromJson(appDetails);
-          }
-        }
-
-        if (mounted && createdApp != null) {
-          setState(() {
-            _statusMessage = context.l10n.installingApp;
-          });
-
-          // Enable/install the app for the user
-          final success = await enableAppServer(createdApp.id);
-          if (success) {
-            SharedPreferencesUtil().enableApp(createdApp.id);
-            createdApp.enabled = true;
-
-            // Update the conversation detail provider's cached apps
-            if (mounted) {
-              final conversationProvider = context.read<ConversationDetailProvider>();
-              conversationProvider.addToEnabledConversationApps(createdApp);
-            }
-          }
-
-          if (mounted) {
-            // Close the create template bottom sheet
-            Navigator.pop(context);
-            AppSnackbar.showSnackbarSuccess(context.l10n.appCreatedAndInstalled);
-
-            // Show the summarized apps sheet so user can use the new app
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (context) => const SummarizedAppsBottomSheet(),
-            );
-          }
-        } else if (mounted) {
-          Navigator.pop(context);
-          AppSnackbar.showSnackbarSuccess(context.l10n.appCreatedSuccessfully);
-        }
-      } else {
-        // Error
-        if (mounted) {
-          setState(() {
-            _isCreating = false;
-            _statusMessage = '';
-          });
-          AppSnackbar.showSnackbarError(submitResult.$2.isNotEmpty ? submitResult.$2 : context.l10n.failedToCreateApp);
-        }
+      // Backend API calls removed - offline app
+      // Template creation not available offline
+      if (mounted) {
+        Navigator.pop(context);
+        AppSnackbar.showSnackbarError('Template creation not available offline');
       }
     } catch (e) {
       Logger.debug('Error creating template: $e');

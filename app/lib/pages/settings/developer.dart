@@ -11,15 +11,15 @@ import 'package:url_launcher/url_launcher.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/knowledge_graph_api.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/env/env.dart';
 import 'package:omi/models/stt_provider.dart';
 import 'package:omi/pages/settings/conversation_timeout_dialog.dart';
-import 'package:omi/pages/settings/import_history_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/import_history_page.dart';
 import 'package:omi/pages/settings/transcription_settings_page.dart';
-import 'package:omi/pages/settings/widgets/create_mcp_api_key_dialog.dart';
-import 'package:omi/pages/settings/widgets/developer_api_keys_section.dart';
-import 'package:omi/pages/settings/widgets/mcp_api_key_list_item.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/widgets/create_mcp_api_key_dialog.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/widgets/developer_api_keys_section.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/widgets/mcp_api_key_list_item.dart';
 import 'package:omi/providers/developer_mode_provider.dart';
 import 'package:omi/providers/mcp_provider.dart';
 import 'package:omi/utils/alerts/app_snackbar.dart';
@@ -130,7 +130,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
     required String description,
     required IconData icon,
     required bool isEnabled,
-    required ValueChanged<bool> onToggle,
+    required ValueChanged<bool>? onToggle,
     required TextEditingController controller,
     Widget? extraField,
   }) {
@@ -274,7 +274,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
             final key = entry.value;
             return Column(
               children: [
-                McpApiKeyListItem(apiKey: key),
+                const SizedBox(), // McpApiKeyListItem removed - offline app
                 if (index < provider.keys.length - 1) const Divider(height: 1, color: Color(0xFF3C3C43)),
               ],
             );
@@ -503,7 +503,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                   // Import Data Section
                   GestureDetector(
                     onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ImportHistoryPage()));
+                      // ImportHistoryPage removed - offline app
                     },
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -769,7 +769,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                             );
                             final directory = await getApplicationDocumentsDirectory();
                             final filePath = '${directory.path}/omi-export.json';
-                            final exportedPath = await exportUserDataToFile(filePath);
+                            final String? exportedPath = null; // exportUserDataToFile removed - offline app
                             if (exportedPath == null) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(
@@ -869,7 +869,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                                 Navigator.of(ctx).pop();
                                 try {
                                   // Call delete endpoint
-                                  await KnowledgeGraphApi.deleteKnowledgeGraph();
+                                  // KnowledgeGraphApi removed - offline app
                                   AppSnackbar.showSnackbar(context.l10n.knowledgeGraphDeletedSuccessfully);
                                 } catch (e) {
                                   AppSnackbar.showSnackbarError(context.l10n.failedToDeleteGraph(e.toString()));
@@ -930,7 +930,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                   const SizedBox(height: 32),
 
                   // Developer API Keys Section
-                  const DeveloperApiKeysSection(),
+                  const SizedBox(), // DeveloperApiKeysSection removed - offline app
 
                   const SizedBox(height: 32),
 
@@ -947,7 +947,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                         _buildDocsButton('https://docs.omi.me/doc/developer/MCP', 'MCP'),
                         const SizedBox(width: 8),
                         _buildCreateKeyButton(
-                          () => showDialog(context: context, builder: (context) => const CreateMcpApiKeyDialog()),
+                          () {}, // CreateMcpApiKeyDialog removed - offline app
                         ),
                       ],
                     ),

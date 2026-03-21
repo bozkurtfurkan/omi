@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/services/devices/models.dart';
 
 /// Rotates an image based on its orientation metadata.

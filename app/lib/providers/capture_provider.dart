@@ -16,15 +16,15 @@ import 'package:permission_handler/permission_handler.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 // TODO: service removed - import 'package:omi/services/auth_service.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/geolocation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/message.dart';
-// TODO: service removed - import 'package:omi/backend/schema/person.dart';
-// TODO: service removed - import 'package:omi/backend/schema/structured.dart';
-// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/geolocation.dart';
+import 'package:omi/backend/schema/message.dart';
+import 'package:omi/backend/schema/person.dart';
+import 'package:omi/backend/schema/structured.dart';
+import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/models/custom_stt_config.dart';
 import 'package:omi/models/stt_provider.dart';
 import 'package:omi/providers/calendar_provider.dart';
@@ -47,7 +47,7 @@ import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 import 'package:omi/main.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/message_event.dart'
+import 'package:omi/backend/schema/message_event.dart'
     show
         MessageEvent,
         MessageServiceStatusEvent,
@@ -88,7 +88,7 @@ class CaptureProvider extends ChangeNotifier
   bool get isWalSupported => _isWalSupported;
 
   StreamSubscription<bool>? _connectionStateListener;
-  bool _isConnected = ConnectivityService().isConnected;
+  bool _isConnected = true; // TODO: backend removed - ConnectivityService deleted
 
   get isConnected => _isConnected;
 
@@ -99,7 +99,7 @@ class CaptureProvider extends ChangeNotifier
   bool _isAutoReconnecting = false;
   bool get isAutoReconnecting => _isAutoReconnecting;
 
-  bool get outOfCredits => usageProvider?.isOutOfCredits ?? false;
+  bool get outOfCredits => false; // TODO: backend removed - no credits system
 
   // Freemium: Threshold notification state
   bool _freemiumThresholdReached = false;
@@ -171,9 +171,7 @@ class CaptureProvider extends ChangeNotifier
   }
 
   CaptureProvider() {
-    _connectionStateListener = ConnectivityService().onConnectionChange.listen((bool isConnected) {
-      onConnectionStateChanged(isConnected);
-    });
+    // TODO: backend removed - ConnectivityService deleted
 
     if (PlatformService.isDesktop) {
       _screenCaptureChannel = const MethodChannel('screenCapturePlatform');
@@ -488,16 +486,9 @@ class CaptureProvider extends ChangeNotifier
       return;
     }
 
-    BleAudioCodec codec = await _getAudioCodec(_recordingDevice!.id);
-    if (messageProvider != null) {
-      await messageProvider?.sendVoiceMessageStreamToServer(
-        data,
-        onFirstChunkRecived: () {
-          _playSpeakerHaptic(deviceId, 2);
-        },
-        codec: codec,
-      );
-    }
+    // TODO: backend removed - voice message streaming to server
+    // BleAudioCodec codec = await _getAudioCodec(_recordingDevice!.id);
+    // messageProvider?.sendVoiceMessageStreamToServer(data, codec: codec);
   }
 
   // Start a 15s timeout timer for voice commands - auto-ends if user forgets to tap again
@@ -961,7 +952,7 @@ class CaptureProvider extends ChangeNotifier
         time: position.timestamp.toUtc(),
       );
 
-      await updateUserGeolocation(geolocation: geolocation);
+      // TODO: backend removed - updateUserGeolocation
     } catch (e) {
       Logger.error('Error sending geolocation: $e');
     }
@@ -1339,7 +1330,7 @@ class CaptureProvider extends ChangeNotifier
     _transcriptServiceReady = false;
 
     if (closeCode == 4002) {
-      usageProvider?.markAsOutOfCreditsAndRefresh();
+      // TODO: backend removed - usageProvider?.markAsOutOfCreditsAndRefresh();
     }
 
     // Show brief warning when transcription drops during phone mic recording
@@ -1371,11 +1362,7 @@ class CaptureProvider extends ChangeNotifier
         return;
       }
 
-      if (!AuthService.instance.isSignedIn()) {
-        Logger.debug("[Provider] keep alive - user not signed in, cancelling reconnect");
-        t.cancel();
-        return;
-      }
+      // TODO: backend removed - AuthService check removed
 
       if (_recordingDevice != null) {
         BleAudioCodec codec = await _getAudioCodec(_recordingDevice!.id);
@@ -1432,8 +1419,8 @@ class CaptureProvider extends ChangeNotifier
   }
 
   Future _loadInProgressConversation() async {
-    var convos = await getConversations(statuses: [ConversationStatus.in_progress], limit: 1);
-    _conversation = convos.isNotEmpty ? convos.first : null;
+    // TODO: backend removed - getConversations API call
+    _conversation = null;
     if (_conversation != null) {
       segments = _conversation!.transcriptSegments;
       // Merge server photos with locally-captured temp photos to avoid losing
@@ -1550,15 +1537,8 @@ class CaptureProvider extends ChangeNotifier
         status: ConversationStatus.processing,
       ),
     );
-    processInProgressConversation().then((result) {
-      if (result == null || result.conversation == null) {
-        conversationProvider!.removeProcessingConversation('0');
-        return;
-      }
-      conversationProvider!.removeProcessingConversation('0');
-      result.conversation!.isNew = true;
-      _processConversationCreated(result.conversation, result.messages);
-    });
+    // TODO: backend removed - processInProgressConversation API call
+    conversationProvider!.removeProcessingConversation('0');
 
     return;
   }
@@ -1572,7 +1552,7 @@ class CaptureProvider extends ChangeNotifier
       _starOngoingConversation = false; // Reset the flag
       conversation.starred = true;
       // Call API to star the conversation
-      await setConversationStarred(conversation.id, true);
+      // TODO: backend removed - setConversationStarred
     }
 
     conversationProvider?.upsertConversation(conversation);
@@ -1585,13 +1565,7 @@ class CaptureProvider extends ChangeNotifier
     if (conversationExists) {
       return;
     }
-    ServerConversation? conversation = await getConversationById(memoryId);
-    if (conversation != null) {
-      Logger.debug("Adding last conversation to conversations: $memoryId");
-      conversationProvider?.upsertConversation(conversation);
-    } else {
-      Logger.debug("Failed to fetch last conversation: $memoryId");
-    }
+    // TODO: backend removed - getConversationById API call
   }
 
   void _handleTranslationEvent(List<TranscriptSegment> translatedSegments) {
@@ -1702,12 +1676,7 @@ class CaptureProvider extends ChangeNotifier
       _segmentsPhotosVersion++; // Bump version so Selector rebuilds
 
       // Persist change
-      await assignBulkConversationTranscriptSegments(
-        _conversation!.id,
-        segmentIds,
-        isUser: isAssigningToUser,
-        personId: isAssigningToUser ? null : finalPersonId,
-      );
+      // TODO: backend removed - assignBulkConversationTranscriptSegments
 
       // Notify backend session
       if (_socket?.state == SocketServiceState.connected) {
@@ -1790,7 +1759,7 @@ class CaptureProvider extends ChangeNotifier
     }
 
     // Update usage provider to reflect approaching limit
-    usageProvider?.refreshSubscription();
+    // TODO: backend removed - usageProvider?.refreshSubscription();
 
     notifyListeners();
   }
@@ -1810,8 +1779,8 @@ class CaptureProvider extends ChangeNotifier
 
   /// Check if credits were restored and reset threshold state
   Future<void> checkCreditsAndResetThresholdIfNeeded() async {
-    await usageProvider?.fetchSubscription();
-    if (usageProvider?.isOutOfCredits == false && _freemiumThresholdReached) {
+    // TODO: backend removed - fetchSubscription
+    if (false && _freemiumThresholdReached) {
       Logger.debug('[Freemium] Credits restored! Resetting threshold state.');
       resetFreemiumThresholdState();
     }

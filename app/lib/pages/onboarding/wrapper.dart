@@ -8,10 +8,10 @@ import 'package:provider/provider.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/knowledge_graph_api.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/gen/assets.gen.dart';
 import 'package:omi/pages/home/page.dart';
-import 'package:omi/pages/onboarding/auth.dart';
+// TODO: page deleted - import 'package:omi/pages/onboarding/auth.dart';
 import 'package:omi/pages/onboarding/found_omi/found_omi_widget.dart';
 import 'package:omi/pages/onboarding/knowledge_graph_step.dart';
 import 'package:omi/pages/onboarding/name/name_widget.dart';
@@ -97,16 +97,9 @@ class _OnboardingWrapperState extends State<OnboardingWrapper> with TickerProvid
       //   context.read<OnboardingProvider>().updatePermissions();
       // }
 
-      if (AuthService.instance.isSignedIn()) {
-        // && !SharedPreferencesUtil().onboardingCompleted
-        if (mounted) {
-          context.read<HomeProvider>().setupHasSpeakerProfile();
-          if (SharedPreferencesUtil().onboardingCompleted) {
-            routeToPage(context, const HomePageWrapper(), replace: true);
-          } else {
-            _controller!.animateTo(kNamePage);
-          }
-        }
+      // AuthService removed - offline app, skip auth check
+      if (mounted && SharedPreferencesUtil().onboardingCompleted) {
+        routeToPage(context, const HomePageWrapper(), replace: true);
       }
       // If not signed in, it stays at the Auth page (index 0)
     });
@@ -128,21 +121,7 @@ class _OnboardingWrapperState extends State<OnboardingWrapper> with TickerProvid
   }
 
   Future<void> _prebuildKnowledgeGraph() async {
-    try {
-      final current = await KnowledgeGraphApi.getKnowledgeGraph();
-      final nodes = current['nodes'] as List<dynamic>? ?? const [];
-      final hasGraph = nodes.any((node) => (node['id'] ?? '') != 'user-node');
-      if (hasGraph) return;
-    } catch (_) {
-      // Continue to rebuild below.
-    }
-
-    await KnowledgeGraphApi.rebuildKnowledgeGraph();
-    await KnowledgeGraphApi.waitForGraphStability(
-      timeout: const Duration(seconds: 25),
-      interval: const Duration(seconds: 2),
-      stabilityChecks: 1,
-    );
+    // KnowledgeGraphApi removed - offline app
   }
 
   void _updateBackgroundImage(int pageIndex) {
@@ -234,28 +213,29 @@ class _OnboardingWrapperState extends State<OnboardingWrapper> with TickerProvid
   @override
   Widget build(BuildContext context) {
     List<Widget> pages = [
-      AuthComponent(
-        onSignIn: () {
-          SharedPreferencesUtil().hasOmiDevice = true;
-          SharedPreferencesUtil().verifiedPersonaId = null;
-          MixpanelManager().onboardingStepCompleted('Auth');
-          context.read<HomeProvider>().setupHasSpeakerProfile();
-          IntercomManager.instance.loginIdentifiedUser(SharedPreferencesUtil().uid);
-          if (SharedPreferencesUtil().onboardingCompleted) {
-            routeToPage(context, const HomePageWrapper(), replace: true);
-          } else {
-            _goNext(); // Go to Name page
-          }
-        },
+      // AuthComponent removed - offline app skips auth
+      Container(
+        child: Center(
+          child: ElevatedButton(
+            onPressed: () {
+              SharedPreferencesUtil().hasOmiDevice = true;
+              SharedPreferencesUtil().verifiedPersonaId = null;
+              MixpanelManager().onboardingStepCompleted('Auth');
+              context.read<HomeProvider>().setupHasSpeakerProfile();
+              if (SharedPreferencesUtil().onboardingCompleted) {
+                routeToPage(context, const HomePageWrapper(), replace: true);
+              } else {
+                _goNext();
+              }
+            },
+            child: const Text('Continue'),
+          ),
+        ),
       ),
       NameWidget(
         goNext: () {
           _goNext(); // Go to Primary Language page
-          IntercomManager.instance.updateUser(
-            FirebaseAuth.instance.currentUser!.email,
-            FirebaseAuth.instance.currentUser!.displayName,
-            FirebaseAuth.instance.currentUser!.uid,
-          );
+          // FirebaseAuth removed - offline app
           MixpanelManager().onboardingStepCompleted('Name');
         },
       ),
@@ -309,7 +289,7 @@ class _OnboardingWrapperState extends State<OnboardingWrapper> with TickerProvid
       OnboardingCompleteScreen(
         onComplete: () {
           SharedPreferencesUtil().onboardingCompleted = true;
-          updateUserOnboardingState(completed: true);
+          // updateUserOnboardingState removed - offline app
           MixpanelManager().onboardingCompleted();
           PaintingBinding.instance.imageCache.clear();
           routeToPage(context, const HomePageWrapper(), replace: true);

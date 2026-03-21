@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/speech_profile.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/main.dart';
 import 'package:omi/pages/settings/language_selection_dialog.dart';
 import 'package:omi/providers/user_provider.dart';
@@ -171,7 +171,8 @@ class HomeProvider extends ChangeNotifier {
 
   Future setupHasSpeakerProfile() async {
     setIsLoading(true);
-    var res = await userHasSpeakerProfile();
+    // TODO: backend removed - userHasSpeakerProfile
+    var res = false;
     setSpeakerProfile(res);
     SharedPreferencesUtil().hasSpeakerProfile = res;
     Logger.debug('_setupHasSpeakerProfile: ${SharedPreferencesUtil().hasSpeakerProfile}');
@@ -187,7 +188,8 @@ class HomeProvider extends ChangeNotifier {
     }
 
     try {
-      final language = await getUserPrimaryLanguage();
+      // TODO: backend removed - getUserPrimaryLanguage
+      final String? language = SharedPreferencesUtil().userPrimaryLanguage.isNotEmpty ? SharedPreferencesUtil().userPrimaryLanguage : null;
       if (language == null) {
         // User hasn't set a primary language yet
         userPrimaryLanguage = '';
@@ -224,22 +226,13 @@ class HomeProvider extends ChangeNotifier {
 
   Future<bool> updateUserPrimaryLanguage(String languageCode, {UserProvider? userProvider}) async {
     try {
-      final success = await setUserPrimaryLanguage(languageCode);
-      if (success) {
-        userPrimaryLanguage = languageCode;
-        hasSetPrimaryLanguage = true;
-        SharedPreferencesUtil().userPrimaryLanguage = languageCode;
-        SharedPreferencesUtil().hasSetPrimaryLanguage = true;
-        AnalyticsManager().setUserAttribute('Primary Language', languageCode);
-
-        // Backend auto-sets single_language_mode — sync local state to match
-        final singleLanguageMode = !multiLanguageSupported.contains(languageCode);
-        userProvider?.updateSingleLanguageModeLocally(singleLanguageMode);
-
-        notifyListeners();
-        return true;
-      }
-      return false;
+      // TODO: backend removed - setUserPrimaryLanguage
+      userPrimaryLanguage = languageCode;
+      hasSetPrimaryLanguage = true;
+      SharedPreferencesUtil().userPrimaryLanguage = languageCode;
+      SharedPreferencesUtil().hasSetPrimaryLanguage = true;
+      notifyListeners();
+      return true;
     } catch (e) {
       Logger.debug('Error setting user primary language: $e');
       return false;
@@ -251,7 +244,7 @@ class HomeProvider extends ChangeNotifier {
   }
 
   Future setUserPeople() async {
-    SharedPreferencesUtil().cachedPeople = await getAllPeople();
+    // TODO: backend removed - getAllPeople
     notifyListeners();
   }
 

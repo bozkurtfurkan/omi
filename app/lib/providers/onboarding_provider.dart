@@ -11,8 +11,8 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_provider_utilities/flutter_provider_utilities.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/main.dart';
 import 'package:omi/providers/base_provider.dart';
 import 'package:omi/providers/device_provider.dart';
@@ -272,7 +272,8 @@ class OnboardingProvider extends BaseProvider with MessageNotifierMixin implemen
       }
     } else {
       // Existing logic for iOS/Android
-      var isAllowed = await NotificationService.instance.requestNotificationPermissions();
+      // TODO: backend removed - NotificationService
+      var isAllowed = true;
       updateNotificationPermission(isAllowed);
     }
     notifyListeners();

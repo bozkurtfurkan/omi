@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/message_event.dart';
-// TODO: service removed - import 'package:omi/backend/schema/person.dart';
-// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/message_event.dart';
+import 'package:omi/backend/schema/person.dart';
+import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/pages/settings/people.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/providers/people_provider.dart';

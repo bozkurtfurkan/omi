@@ -11,20 +11,20 @@ import 'package:tuple/tuple.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
 // TODO: service removed - import 'package:omi/backend/http/webhooks.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/app.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/folder.dart';
-// TODO: service removed - import 'package:omi/backend/schema/geolocation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/structured.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/app.dart';
+import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/folder.dart';
+import 'package:omi/backend/schema/geolocation.dart';
+import 'package:omi/backend/schema/structured.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/gen/assets.gen.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/share.dart';
-import 'package:omi/pages/conversation_detail/test_prompts.dart';
+// TODO: page deleted - import 'package:omi/pages/conversation_detail/test_prompts.dart';
 import 'package:omi/pages/conversation_detail/widgets/conversation_markdown_widget.dart';
 import 'package:omi/pages/conversation_detail/widgets/summarized_apps_sheet.dart';
-import 'package:omi/pages/conversations/widgets/move_to_folder_sheet.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/move_to_folder_sheet.dart';
 import 'package:omi/pages/settings/developer.dart';
 import 'package:omi/providers/folder_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
@@ -179,18 +179,14 @@ class GetSummaryWidgets extends StatelessWidget {
         // Track folder chip clicked
         MixpanelManager().conversationDetailFolderChipClicked(
           conversationId: conversationId,
-          currentFolderId: currentFolderId,
         );
 
         final folderProvider = Provider.of<FolderProvider>(context, listen: false);
         if (folderProvider.folders.isEmpty) {
           await folderProvider.loadFolders();
         }
-        final newFolderId = await showMoveToFolderSheet(
-          context,
-          conversationId: conversationId,
-          currentFolderId: currentFolderId,
-        );
+        // showMoveToFolderSheet deleted
+        final String? newFolderId = null;
         // If folder was changed, update locally immediately for instant UI feedback
         if (newFolderId != null && context.mounted) {
           context.read<ConversationDetailProvider>().updateFolderIdLocally(newFolderId);
@@ -200,7 +196,6 @@ class GetSummaryWidgets extends StatelessWidget {
             conversationId: conversationId,
             fromFolderId: currentFolderId,
             toFolderId: newFolderId,
-            source: 'detail_page_sheet',
           );
         }
       },
@@ -314,10 +309,8 @@ class GetSummaryWidgets extends StatelessWidget {
                   final previousVisibility = conversation.visibility;
                   provider.updateVisibilityLocally(ConversationVisibility.private_);
                   Navigator.pop(sheetContext);
-                  bool success = await setConversationVisibility(
-                    conversation.id,
-                    visibility: ConversationVisibility.private_.value,
-                  );
+                  // Backend removed - offline app
+                  bool success = true;
                   if (!success) {
                     provider.updateVisibilityLocally(previousVisibility);
                     return;
@@ -344,10 +337,8 @@ class GetSummaryWidgets extends StatelessWidget {
                   final previousVisibility = conversation.visibility;
                   provider.updateVisibilityLocally(ConversationVisibility.shared);
                   Navigator.pop(sheetContext);
-                  bool success = await setConversationVisibility(
-                    conversation.id,
-                    visibility: ConversationVisibility.shared.value,
-                  );
+                  // Backend removed - offline app
+                  bool success = true;
                   if (!success) {
                     provider.updateVisibilityLocally(previousVisibility);
                     return;
@@ -494,7 +485,7 @@ class ActionItemsListWidget extends StatelessWidget {
                               duration: const Duration(seconds: 2),
                             ),
                           );
-                          MixpanelManager().copiedConversationDetails(provider.conversation, source: 'Action Items');
+                          MixpanelManager().copiedConversationDetails();
                         },
                         icon: const Icon(Icons.copy_rounded, color: Colors.white, size: 20),
                       ),
@@ -521,7 +512,7 @@ class ActionItemsListWidget extends StatelessWidget {
                     var tempIdx = idx;
                     provider.deleteActionItem(idx);
                     provider.deleteActionItemPermanently(tempItem, tempIdx);
-                    MixpanelManager().deletedActionItem(provider.conversation);
+                    MixpanelManager().deletedActionItem();
                     // ScaffoldMessenger.of(context)
                     //     .showSnackBar(
                     //       SnackBar(
@@ -540,7 +531,7 @@ class ActionItemsListWidget extends StatelessWidget {
                     //     .then((reason) {
                     //   if (reason != SnackBarClosedReason.action) {
                     //     provider.deleteActionItemPermanently(tempItem, tempIdx);
-                    //     MixpanelManager().deletedActionItem(provider.conversation);
+                    //     MixpanelManager().deletedActionItem();
                     //   }
                     // });
                   },
@@ -560,11 +551,11 @@ class ActionItemsListWidget extends StatelessWidget {
                               onChanged: (value) {
                                 if (value != null) {
                                   context.read<ConversationDetailProvider>().updateActionItemState(value, idx);
-                                  setConversationActionItemState(provider.conversation.id, [idx], [value]);
+                                  // Backend removed - action item state is local only
                                   if (value) {
-                                    MixpanelManager().checkedActionItem(provider.conversation, idx);
+                                    MixpanelManager().checkedActionItem();
                                   } else {
-                                    MixpanelManager().uncheckedActionItem(provider.conversation, idx);
+                                    MixpanelManager().uncheckedActionItem();
                                   }
                                 }
                               },
@@ -1170,21 +1161,8 @@ class _GetDevToolsOptionsState extends State<GetDevToolsOptions> {
                 changeLoadingAppIntegrationTest(false);
                 return;
               } else {
-                webhookOnConversationCreatedCall(widget.conversation, returnRawBody: true).then((response) {
-                  showDialog(
-                    context: context,
-                    builder: (c) => getDialog(
-                      context,
-                      () => Navigator.pop(context),
-                      () => Navigator.pop(context),
-                      context.l10n.result,
-                      response,
-                      okButtonText: context.l10n.ok,
-                      singleButton: true,
-                    ),
-                  );
-                  changeLoadingAppIntegrationTest(false);
-                });
+                // Backend removed - webhook call not available offline
+                changeLoadingAppIntegrationTest(false);
               }
             },
           ),
@@ -1196,7 +1174,7 @@ class _GetDevToolsOptionsState extends State<GetDevToolsOptions> {
             leading: const Icon(Icons.chat),
             trailing: const Icon(Icons.arrow_forward_ios, size: 20),
             onTap: () {
-              routeToPage(context, TestPromptsPage(conversation: widget.conversation));
+              // TestPromptsPage deleted
             },
           ),
         ),

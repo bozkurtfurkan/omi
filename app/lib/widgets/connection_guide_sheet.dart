@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/device_guide.dart';
+import 'package:omi/backend/schema/device_guide.dart';
 import 'package:omi/gen/assets.gen.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
@@ -87,7 +87,7 @@ class ConnectionGuideSheet extends StatelessWidget {
   }
 
   void _onDeviceTapped(BuildContext context, DeviceGuideProduct product) {
-    MixpanelManager().connectionGuideDeviceTapped(product.id);
+    MixpanelManager().connectionGuideDeviceTapped();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -95,7 +95,7 @@ class ConnectionGuideSheet extends StatelessWidget {
       builder: (sheetContext) => DevicePairingSheet(
         product: product,
         onDismissAll: () {
-          MixpanelManager().connectionGuideDismissed(product.id);
+          MixpanelManager().connectionGuideDismissed();
           Navigator.of(sheetContext).pop();
           Navigator.of(context).pop();
         },

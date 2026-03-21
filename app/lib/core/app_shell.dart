@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/mobile/mobile_app.dart';
 // TODO: service removed - import 'package:omi/pages/settings/asana_settings_page.dart';
 // TODO: service removed - import 'package:omi/pages/settings/clickup_settings_page.dart';
-import 'package:omi/pages/settings/usage_page.dart';
-import 'package:omi/pages/settings/wrapped_2025_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/usage_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/wrapped_2025_page.dart';
 import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/providers/auth_provider.dart';
@@ -68,7 +68,7 @@ class _AppShellState extends State<AppShell> {
     if (uri.pathSegments.first == 'wrapped') {
       if (mounted) {
         PlatformManager.instance.mixpanel.track('Wrapped Opened From DeepLink');
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const Wrapped2025Page()));
+        // Wrapped2025Page deleted
       }
     } else if (uri.pathSegments.first == 'tasks' && uri.pathSegments.length > 1) {
       if (mounted) {
@@ -79,7 +79,8 @@ class _AppShellState extends State<AppShell> {
     } else if (uri.pathSegments.first == 'unlimited') {
       if (mounted) {
         PlatformManager.instance.mixpanel.track('Plans Opened From DeepLink');
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const UsagePage(showUpgradeDialog: true)));
+        // UsagePage deleted
+        Logger.debug('UsagePage deep link: page deleted');
       }
     } else if (uri.host == 'todoist' && uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'callback') {
       // TODO: service removed - Todoist OAuth callback removed
@@ -163,8 +164,8 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _initializeProviders() async {
     if (!mounted) return;
-    final isSignedIn = context.read<AuthenticationProvider>().isSignedIn();
-    if (isSignedIn) {
+    final signedIn = context.read<AuthenticationProvider>().isSignedIn();
+    if (signedIn) {
       context.read<HomeProvider>().setupHasSpeakerProfile();
       context.read<HomeProvider>().setupUserPrimaryLanguage();
       context.read<UserProvider>().initialize();

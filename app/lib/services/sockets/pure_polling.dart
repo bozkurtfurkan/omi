@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:omi/models/stt_result.dart';
-// TODO: service removed - import 'package:omi/services/custom_stt_log_service.dart';
+import 'package:omi/services/custom_stt_log_service.dart';
 import 'package:omi/services/sockets/pure_socket.dart';
 import 'package:omi/utils/audio/audio_transcoder.dart';
 import 'package:omi/utils/debug_log_manager.dart';

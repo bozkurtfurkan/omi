@@ -9,8 +9,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/audio.dart';
-// TODO: service removed - import 'package:omi/backend/schema/app.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/app.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/gen/assets.gen.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/widgets/summarized_apps_sheet.dart';
@@ -187,8 +187,6 @@ class _ConversationBottomBarState extends State<ConversationBottomBar> {
     final conversationId = widget.conversation?.id ?? '';
     MixpanelManager().transcriptSegmentTapped(
       conversationId: conversationId,
-      segmentStartSeconds: segmentStartSeconds,
-      seekPositionSeconds: filePosition,
     );
 
     await _seekToCombinedPosition(targetPosition);
@@ -197,7 +195,6 @@ class _ConversationBottomBarState extends State<ConversationBottomBar> {
     if (_audioPlayer != null && !_audioPlayer!.playing) {
       MixpanelManager().audioPlaybackStarted(
         conversationId: conversationId,
-        durationSeconds: _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : null,
       );
       await _audioPlayer!.play();
       if (mounted) setState(() {});
@@ -219,35 +216,9 @@ class _ConversationBottomBarState extends State<ConversationBottomBar> {
     try {
       _audioPlayer = AudioPlayer();
 
-      final signedUrlInfos = await getConversationAudioSignedUrls(widget.conversation!.id);
-      final sortedAudioFiles = _getSortedAudioFiles();
-
-      List<AudioSource> audioSources = [];
-      Map<String, String>? fallbackHeaders;
-
-      for (final audioFile in sortedAudioFiles) {
-        final fileId = audioFile.id;
-        // Find matching signed URL info
-        final urlInfo = signedUrlInfos.firstWhere(
-          (info) => info.id == fileId,
-          orElse: () => AudioFileUrlInfo(id: fileId, status: 'pending', duration: 0),
-        );
-
-        if (urlInfo.isCached && urlInfo.signedUrl != null) {
-          // Use signed URL directly
-          audioSources.add(AudioSource.uri(Uri.parse(urlInfo.signedUrl!)));
-        } else {
-          // Fall back to API URL
-          fallbackHeaders ??= await getAudioHeaders();
-          final apiUrl = getAudioStreamUrl(conversationId: widget.conversation!.id, audioFileId: fileId, format: 'wav');
-          audioSources.add(AudioSource.uri(Uri.parse(apiUrl), headers: fallbackHeaders));
-        }
-      }
-
-      final playlist = ConcatenatingAudioSource(useLazyPreparation: true, children: audioSources);
-
-      await _audioPlayer!.setAudioSource(playlist, preload: true);
-      _isAudioInitialized = true;
+      // Audio streaming from backend removed - offline app
+      // TODO: implement local audio file playback
+      _isAudioInitialized = false;
     } catch (e) {
       Logger.debug('Error initializing audio: $e');
     } finally {
@@ -277,7 +248,6 @@ class _ConversationBottomBarState extends State<ConversationBottomBar> {
       MixpanelManager().audioPlaybackPaused(
         conversationId: conversationId,
         positionSeconds: combinedPosition.inSeconds,
-        durationSeconds: _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : null,
       );
 
       await _audioPlayer!.pause();
@@ -285,7 +255,6 @@ class _ConversationBottomBarState extends State<ConversationBottomBar> {
       // Track play
       MixpanelManager().audioPlaybackStarted(
         conversationId: conversationId,
-        durationSeconds: _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : null,
       );
 
       await _audioPlayer!.play();

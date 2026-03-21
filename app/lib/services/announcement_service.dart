@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/announcements.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/models/announcement.dart';
 import 'package:omi/providers/announcement_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
@@ -107,8 +107,6 @@ class AnnouncementService {
         // Track announcement shown
         MixpanelManager().announcementShown(
           announcementId: announcement.id,
-          type: typeName,
-          priority: announcement.display?.priority,
         );
 
         // Show based on announcement type
@@ -125,8 +123,6 @@ class AnnouncementService {
         // Track dismissal and mark as dismissed
         MixpanelManager().announcementDismissed(
           announcementId: announcement.id,
-          type: typeName,
-          ctaClicked: ctaClicked,
         );
         await provider.markAnnouncementDismissed(announcement.id, ctaClicked: ctaClicked);
       }

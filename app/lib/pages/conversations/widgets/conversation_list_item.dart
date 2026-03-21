@@ -8,11 +8,11 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/page.dart';
-import 'package:omi/pages/settings/usage_page.dart';
+// TODO: page deleted - import 'package:omi/pages/settings/usage_page.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
@@ -97,8 +97,8 @@ class _ConversationListItemState extends State<ConversationListItem> {
             }
 
             if (widget.conversation.isLocked) {
-              MixpanelManager().paywallOpened('Conversation List Item');
-              routeToPage(context, const UsagePage(showUpgradeDialog: true));
+              MixpanelManager().paywallOpened();
+              // UsagePage removed - offline app
               return;
             }
             // Calculate time difference
@@ -109,16 +109,15 @@ class _ConversationListItemState extends State<ConversationListItem> {
             if (searchQuery.isNotEmpty) {
               // Track conversation opened from search
               MixpanelManager().conversationOpenedFromSearch(
-                conversation: widget.conversation,
+                conversationId: widget.conversation.id,
                 searchQuery: searchQuery,
                 conversationIndexInResults: widget.conversationIdx,
               );
             } else {
               // Track normal conversation list item click with time difference
               MixpanelManager().conversationListItemClickedWithTimeDifference(
-                conversation: widget.conversation,
-                conversationIndex: widget.conversationIdx,
-                hoursSinceConversation: hoursSinceConversation,
+                widget.conversation,
+                hoursSinceConversation,
               );
             }
 
@@ -290,7 +289,7 @@ class _ConversationListItemState extends State<ConversationListItem> {
                         onDismissed: (direction) async {
                           var conversation = widget.conversation;
                           var conversationIdx = widget.conversationIdx;
-                          MixpanelManager().conversationSwipedToDelete(conversation);
+                          MixpanelManager().conversationSwipedToDelete();
                           provider.deleteConversationLocally(conversation, conversationIdx, widget.date);
                         },
                         child: Padding(

@@ -5,16 +5,16 @@ import 'package:provider/provider.dart';
 import 'package:omi/widgets/shimmer_with_timeout.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/pages/capture/widgets/widgets.dart';
-import 'package:omi/pages/conversations/widgets/daily_summaries_list.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/daily_summaries_list.dart';
 import 'package:omi/pages/conversations/widgets/folder_tabs.dart';
-import 'package:omi/pages/conversations/widgets/goals_widget.dart';
-import 'package:omi/pages/conversations/widgets/processing_capture.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/goals_widget.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/processing_capture.dart';
 import 'package:omi/pages/conversations/widgets/search_result_header_widget.dart';
 import 'package:omi/pages/conversations/widgets/search_widget.dart';
-import 'package:omi/pages/conversations/widgets/today_tasks_widget.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+// TODO: page deleted - import 'package:omi/pages/conversations/widgets/today_tasks_widget.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/providers/folder_provider.dart';
@@ -37,14 +37,10 @@ class _ConversationsPageState extends State<ConversationsPage> with AutomaticKee
   TextEditingController textController = TextEditingController();
   final AppReviewService _appReviewService = AppReviewService();
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey<GoalsWidgetState> _goalsWidgetKey = GlobalKey<GoalsWidgetState>();
-
   void _refreshGoals() {}
 
   // Public method to trigger goal creation from outside
-  void addGoal() {
-    _goalsWidgetKey.currentState?.addGoal();
-  }
+  void addGoal() {}
 
   @override
   bool get wantKeepAlive => true;
@@ -163,8 +159,6 @@ class _ConversationsPageState extends State<ConversationsPage> with AutomaticKee
           onRefresh: () async {
             HapticFeedback.mediumImpact();
             Provider.of<CaptureProvider>(context, listen: false).refreshInProgressConversations();
-            // Refresh goals widget
-            _goalsWidgetKey.currentState?.refresh();
             _refreshGoals();
             await Future.wait([
               convoProvider.getInitialConversations(),
@@ -180,7 +174,7 @@ class _ConversationsPageState extends State<ConversationsPage> with AutomaticKee
               // Header widgets (unchanged)
               const SliverToBoxAdapter(child: SpeechProfileCardWidget()),
               const SliverToBoxAdapter(child: UpdateFirmwareCardWidget()),
-              const SliverToBoxAdapter(child: ConversationCaptureWidget()),
+              // ConversationCaptureWidget removed - offline app
 
               // Search bar
               Consumer2<HomeProvider, ConversationProvider>(
@@ -195,7 +189,7 @@ class _ConversationsPageState extends State<ConversationsPage> with AutomaticKee
                 },
               ),
               const SliverToBoxAdapter(child: SearchResultHeaderWidget()),
-              getProcessingConversationsWidget(convoProvider.processingConversations),
+              // getProcessingConversationsWidget removed - offline app
 
               // Today's Tasks and Goals widgets - hide when showing daily recaps, search bar is active, or calendar filter is active
               Consumer<HomeProvider>(
@@ -211,14 +205,7 @@ class _ConversationsPageState extends State<ConversationsPage> with AutomaticKee
                   if (!showTasks && !showGoals) {
                     return const SliverToBoxAdapter(child: SizedBox.shrink());
                   }
-                  return SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        if (showTasks) const TodayTasksWidget(),
-                        if (showGoals) GoalsWidget(key: _goalsWidgetKey, onRefresh: _refreshGoals),
-                      ],
-                    ),
-                  );
+                  return const SliverToBoxAdapter(child: SizedBox.shrink()); // TodayTasksWidget/GoalsWidget removed
                 },
               ),
 
@@ -257,7 +244,7 @@ class _ConversationsPageState extends State<ConversationsPage> with AutomaticKee
                 ),
               // Show daily summaries list or conversations based on filter
               if (convoProvider.showDailySummaries)
-                const DailySummariesList()
+                const SliverToBoxAdapter(child: SizedBox.shrink()) // DailySummariesList removed
               else if (convoProvider.groupedConversations.isEmpty &&
                   !convoProvider.isLoadingConversations &&
                   !convoProvider.isFetchingConversations)

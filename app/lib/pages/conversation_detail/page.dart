@@ -11,10 +11,10 @@ import 'package:share_plus/share_plus.dart';
 import 'package:tuple/tuple.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/conversations.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/person.dart';
-// TODO: service removed - import 'package:omi/backend/schema/structured.dart';
-// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
+import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/person.dart';
+import 'package:omi/backend/schema/structured.dart';
+import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/pages/capture/widgets/widgets.dart';
 import 'package:omi/pages/conversation_detail/widgets.dart';
 import 'package:omi/pages/home/page.dart';
@@ -34,13 +34,13 @@ import 'package:omi/widgets/expandable_text.dart';
 import 'package:omi/widgets/extensions/string.dart';
 import 'conversation_detail_provider.dart';
 import 'share.dart';
-import 'test_prompts.dart';
+// TODO: page deleted - import 'test_prompts.dart';
 import 'widgets/audio_download_progress_sheet.dart';
 import 'widgets/edit_segment_sheet.dart';
 import 'widgets/name_speaker_sheet.dart';
 import 'widgets/share_to_contacts_sheet.dart';
 
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/preferences.dart';
 
 // import 'share.dart';
 // import 'package:omi/pages/settings/developer.dart';
@@ -211,7 +211,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> with Ti
         final date = provider.selectedDate;
         final idx = conversationProvider.getConversationIndexById(provider.conversation.id, date);
         if (idx != -1) {
-          await conversationProvider.updateSearchedConvoDetails(provider.conversation.id, date, idx);
+          conversationProvider.updateSearchedConvoDetails(provider.conversation);
         }
         provider.updateConversation(provider.conversation.id, provider.selectedDate);
       }
@@ -348,7 +348,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> with Ti
       //   _triggerWebhookIntegration(context, provider.conversation);
       //   break;
       case 'test_prompt':
-        routeToPage(context, TestPromptsPage(conversation: provider.conversation));
+        // TestPromptsPage deleted
         break;
       case 'reprocess':
         if (!provider.loadingReprocessConversation) {
@@ -436,88 +436,19 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> with Ti
       ),
     );
 
-    AudioDownloadService? service;
+    // AudioDownloadService removed - no backend audio download for offline app
     try {
-      service = AudioDownloadService();
-
-      final file = await service.downloadAndCombineAudio(
-        provider.conversation,
-        onProgress: (progress) {
-          currentProgress = progress;
-          updateSheet?.call(() {});
-        },
-        onStageChange: (stage) {
-          switch (stage) {
-            case AudioDownloadStage.preparing:
-              currentState = AudioDownloadState.preparing;
-              break;
-            case AudioDownloadStage.downloading:
-              currentState = AudioDownloadState.downloading;
-              break;
-            case AudioDownloadStage.processing:
-              currentState = AudioDownloadState.processing;
-              break;
-          }
-          updateSheet?.call(() {});
-        },
-      );
-
-      if (file != null) {
-        currentState = AudioDownloadState.success;
-        updateSheet?.call(() {});
-
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        if (mounted) {
-          Navigator.of(sheetContext).pop();
-        }
-
-        await Share.shareXFiles([XFile(file.path, mimeType: 'audio/wav')]);
-
-        // Track successful completion
-        final durationSeconds = DateTime.now().difference(startTime).inSeconds;
-        MixpanelManager().audioShareCompleted(
-          conversationId: provider.conversation.id,
-          audioFileCount: audioFileCount,
-          wasCombined: audioFileCount > 1,
-          durationSeconds: durationSeconds,
-        );
-
-        await service.cleanup();
-      } else {
-        if (mounted) {
-          Navigator.of(sheetContext).pop();
-        }
-
-        // Track failure (no audio available)
-        MixpanelManager().audioShareFailed(
-          conversationId: provider.conversation.id,
-          errorMessage: 'No audio files available',
-        );
-      }
-    } catch (e) {
-      Logger.debug('Error downloading audio: $e');
-
-      // Track failure
-      MixpanelManager().audioShareFailed(conversationId: provider.conversation.id, errorMessage: e.toString());
-
       currentState = AudioDownloadState.error;
       updateSheet?.call(() {});
-
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 1));
 
       if (mounted) {
         Navigator.of(sheetContext).pop();
-
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.audioDownloadFailed),
-            action: SnackBarAction(label: context.l10n.retry, onPressed: () => _downloadAudio(context, provider)),
-          ),
+          SnackBar(content: Text(context.l10n.audioDownloadFailed)),
         );
       }
     } finally {
-      service?.dispose();
       if (mounted) {
         setState(() {
           _isDownloadingAudio = false;
@@ -646,10 +577,8 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> with Ti
                                     HapticFeedback.mediumImpact();
                                     try {
                                       final newStarredState = !provider.conversation.starred;
-                                      bool success = await setConversationStarred(
-                                        provider.conversation.id,
-                                        newStarredState,
-                                      );
+                                      // Backend removed - just succeed locally
+                                      bool success = true;
                                       if (!mounted) return;
                                       if (success) {
                                         provider.conversation.starred = newStarredState;
@@ -712,7 +641,8 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> with Ti
                                     HapticFeedback.mediumImpact();
                                     try {
                                       // Directly share the summary link
-                                      bool shared = await setConversationVisibility(provider.conversation.id);
+                                      // Backend removed - sharing not available offline
+                                      bool shared = false;
                                       if (!shared) {
                                         ScaffoldMessenger.of(
                                           context,
@@ -783,9 +713,7 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> with Ti
                                     _searchFocusNode.unfocus();
                                   } else {
                                     _searchFocusNode.requestFocus();
-                                    MixpanelManager().conversationDetailSearchClicked(
-                                      conversationId: provider.conversation.id,
-                                    );
+                                    MixpanelManager().conversationDetailSearchClicked();
                                   }
                                 });
                                 HapticFeedback.mediumImpact();
@@ -1464,7 +1392,7 @@ class _TranscriptWidgetsState extends State<TranscriptWidgets> with AutomaticKee
                               }
                             }
 
-                            MixpanelManager().taggedSegment(finalPersonId == 'user' ? 'User' : 'User Person');
+                            MixpanelManager().taggedSegment();
 
                             for (final segmentId in segmentIds) {
                               final segmentIndex = provider.conversation.transcriptSegments.indexWhere(
@@ -1476,11 +1404,10 @@ class _TranscriptWidgetsState extends State<TranscriptWidgets> with AutomaticKee
                                   ? null
                                   : finalPersonId;
                             }
-                            await assignBulkConversationTranscriptSegments(
+                            // Backend removed - segment assignment is local only
+                            await provider.assignBulkConversationTranscriptSegments(
                               provider.conversation.id,
                               segmentIds,
-                              isUser: finalPersonId == 'user',
-                              personId: finalPersonId == 'user' ? null : finalPersonId,
                             );
                             provider.toggleEditSegmentLoading(false);
                           },
@@ -1637,14 +1564,14 @@ class _ActionItemDetailWidgetState extends State<ActionItemDetailWidget> {
       );
       if (currentIndex != -1) {
         if (newValue) {
-          MixpanelManager().checkedActionItem(provider.conversation, currentIndex);
+          MixpanelManager().checkedActionItem();
 
           if (!await _appReviewService.hasCompletedFirstActionItem()) {
             await _appReviewService.markFirstActionItemCompleted();
             _appReviewService.showReviewPromptIfNeeded(context, isProcessingFirstConversation: false);
           }
         } else {
-          MixpanelManager().uncheckedActionItem(provider.conversation, currentIndex);
+          MixpanelManager().uncheckedActionItem();
         }
       }
     } catch (e) {

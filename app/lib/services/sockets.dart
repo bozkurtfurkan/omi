@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/models/custom_stt_config.dart';
 import 'package:omi/services/sockets/transcription_service.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/mutex.dart';
 
-export 'package:omi/services/freemium_transcription_service.dart';
+// TODO: service removed - export 'package:omi/services/freemium_transcription_service.dart';
 
 abstract class ISocketService {
   void start();

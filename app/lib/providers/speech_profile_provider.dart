@@ -9,11 +9,11 @@ import 'package:permission_handler/permission_handler.dart';
 
 // TODO: service removed - import 'package:omi/backend/http/api/speech_profile.dart';
 // TODO: service removed - import 'package:omi/backend/http/api/users.dart';
-// TODO: service removed - import 'package:omi/backend/preferences.dart';
-// TODO: service removed - import 'package:omi/backend/schema/bt_device/bt_device.dart';
-// TODO: service removed - import 'package:omi/backend/schema/conversation.dart';
-// TODO: service removed - import 'package:omi/backend/schema/message_event.dart';
-// TODO: service removed - import 'package:omi/backend/schema/transcript_segment.dart';
+import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
+import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/message_event.dart';
+import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/services.dart';
@@ -259,13 +259,8 @@ class SpeechProfileProvider extends ChangeNotifier
       bool uploadSuccess = false;
       bool uploadFailedDueToShortAudio = false;
       try {
-        uploadSuccess = await uploadProfile(data.item1).timeout(
-          const Duration(seconds: 30),
-          onTimeout: () {
-            Logger.debug('Profile upload timed out after 30 seconds');
-            return false;
-          },
-        );
+        // TODO: backend removed - uploadProfile
+        uploadSuccess = false;
         Logger.debug('Profile upload completed: $uploadSuccess');
       } catch (e) {
         Logger.debug('Error uploading profile: $e');
@@ -383,7 +378,8 @@ class SpeechProfileProvider extends ChangeNotifier
   }
 
   Future setupSpeechRecording() async {
-    final permission = await getStoreRecordingPermission();
+    // TODO: backend removed - getStoreRecordingPermission
+    final bool? permission = null;
     permissionEnabled = permission;
     if (permission != null) {
       SharedPreferencesUtil().permissionStoreRecordingsEnabled = permission;

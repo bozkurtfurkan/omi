@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/person.dart';
+import 'package:omi/backend/schema/person.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/providers/people_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
@@ -107,7 +107,7 @@ class _UserPeoplePageState extends State<_UserPeoplePage> {
         if (person == null) {
           provider.createPersonProvider(name);
         } else {
-          provider.updatePersonProvider(person, name);
+          provider.updatePersonProvider(person);
         }
         Navigator.pop(context);
       }
@@ -184,7 +184,7 @@ class _UserPeoplePageState extends State<_UserPeoplePage> {
     );
 
     if (confirmed == true) {
-      await provider.deletePersonSample(peopleIdx, sampleIdx);
+      await provider.deletePersonSample(person.id, sampleIdx);
     }
   }
 
@@ -201,7 +201,7 @@ class _UserPeoplePageState extends State<_UserPeoplePage> {
       ),
     );
 
-    if (confirmed == true) provider.deletePersonProvider(person);
+    if (confirmed == true) provider.deletePersonProvider(person.id);
   }
 
   @override
@@ -294,7 +294,7 @@ class _UserPeoplePageState extends State<_UserPeoplePage> {
                                             ? Icons.pause
                                             : Icons.play_arrow,
                                       ),
-                                      onPressed: () => provider.playPause(index, j, sample),
+                                      onPressed: () => provider.playPause(index, j),
                                     ),
                                     title: Text(j == 0 ? context.l10n.speechProfile : context.l10n.sampleNumber(j)),
                                     onTap: () => _confirmDeleteSample(index, person, j, provider),

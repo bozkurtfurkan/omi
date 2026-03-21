@@ -69,7 +69,8 @@ class PureSocket implements IPureSocket {
     }
 
     Logger.debug("request wss ${url}");
-    final headers = await buildHeaders(requireAuthCheck: true);
+    // buildHeaders removed (was backend auth) - connect without auth headers
+    final Map<String, dynamic> headers = {};
 
     _channel = IOWebSocketChannel.connect(
       url,

@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:provider/provider.dart';
 
-// TODO: service removed - import 'package:omi/backend/schema/app.dart';
+import 'package:omi/backend/schema/app.dart';
 import 'package:omi/gen/assets.gen.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/providers/home_provider.dart';
@@ -103,10 +103,10 @@ class ChatAppsDropdownWidget extends StatelessWidget {
                   }
 
                   // select app by id
-                  appProvider.setSelectedChatAppId(val);
+                  appProvider.setSelectedChatApp(val);
                   await context.read<MessageProvider>().refreshMessages(dropdownSelected: true);
                   var app = messageProvider.chatApps.firstWhereOrNull((a) => a.id == val);
-                  if (context.read<MessageProvider>().messages.isEmpty) {
+                  if (context.read<MessageProvider>().messages.isEmpty && app != null) {
                     context.read<MessageProvider>().sendInitialAppMessage(app);
                   }
                 },
