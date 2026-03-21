@@ -14,7 +14,7 @@ import 'package:marionette_flutter/marionette_flutter.dart';
 // TODO: service removed - import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 // TODO: service removed - import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as ble;
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:opus_dart/opus_dart.dart';
 import 'package:opus_flutter/opus_flutter.dart' as opus_flutter;
@@ -89,8 +89,6 @@ Future _init() async {
       Env.init(DevEnv());
     }
   }
-
-  FlutterForegroundTask.initCommunicationPort();
 
   // Service manager
   await ServiceManager.init();
@@ -247,8 +245,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider(create: (context) => PhoneCallProvider()),
       ],
       builder: (context, child) {
-        return WithForegroundTask(
-          child: MaterialApp(
+        return MaterialApp(
             debugShowCheckedModeBanner: F.env == Environment.dev,
             title: F.title,
             navigatorKey: MyApp.navigatorKey,
@@ -336,8 +333,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               options: const TalkerWrapperOptions(enableErrorAlerts: false, enableExceptionAlerts: false),
               child: const AppShell(),
             ),
-          ),
-        );
+          );
       },
     );
   }

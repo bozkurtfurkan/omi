@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:collection/collection.dart';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
 import 'package:flutter_provider_utilities/flutter_provider_utilities.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
@@ -1708,9 +1708,6 @@ class CaptureProvider extends ChangeNotifier
 
     if (segments.isEmpty && !_isLoadingInProgressConversation) {
       _isLoadingInProgressConversation = true;
-      if (!PlatformService.isDesktop) {
-        FlutterForegroundTask.sendDataToTask(jsonEncode({'location': true}));
-      }
       try {
         await _loadInProgressConversation();
       } finally {

@@ -115,7 +115,7 @@ extension FlutterError: Error {}
     // so the WidgetKit extension can read it.
     let batteryWidgetChannel = FlutterMethodChannel(name: "com.omi.battery_widget", binaryMessenger: controller!.binaryMessenger)
     batteryWidgetChannel.setMethodCallHandler { (call, result) in
-      let defaults = UserDefaults(suiteName: "group.com.friend-app-with-wearable.ios12")
+      let defaults = UserDefaults(suiteName: "group.com.bozkurtfurkan.omi")
       guard let args = call.arguments as? [String: Any] else {
         result(FlutterMethodNotImplemented)
         return
@@ -147,10 +147,6 @@ extension FlutterError: Error {}
     // Register Phone Calls plugin
     PhoneCallsPlugin.register(with: self.registrar(forPlugin: "PhoneCallsPlugin")!)
 
-    // here, Without this code the task will not work.
-    SwiftFlutterForegroundTaskPlugin.setPluginRegistrantCallback { registry in
-      GeneratedPluginRegistrant.register(with: registry)
-    }
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     }

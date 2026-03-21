@@ -1,3 +1,5 @@
 // This is a generated file; do not edit or check into version control.
-GOOGLE_REVERSE_CLIENT_ID=com.googleusercontent.apps.1031333818730-dusn243nct6i5rgfpfkj5mchuj1qnmde
-APP_BUNDLE_IDENTIFIER=com.friend-app-with-wearable.ios12
+APP_BUNDLE_IDENTIFIER=com.bozkurtfurkan.omi
+// Flutter.xcframework path for Xcode 26 dependency scan compatibility
+FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*] = $(FLUTTER_ROOT)/bin/cache/artifacts/engine/ios/Flutter.xcframework/ios-arm64 $(inherited)
+FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*] = $(FLUTTER_ROOT)/bin/cache/artifacts/engine/ios/Flutter.xcframework/ios-arm64_x86_64-simulator $(inherited)

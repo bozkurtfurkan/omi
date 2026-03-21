@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 // TODO: service removed - import 'package:upgrader/upgrader.dart';
@@ -101,7 +101,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, TickerProviderStateMixin {
-  ForegroundUtil foregroundUtil = ForegroundUtil();
   List<Widget> screens = [Container(), const SizedBox(), const SizedBox(), const SizedBox()];
 
   // TODO: deleted - final _upgrader = MyUpgrader(debugLogging: false, debugDisplayOnce: false);
@@ -190,12 +189,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   final Map<String, Widget> screensWithRespectToPath = {'/facts': const MemoriesPage()};
   bool? previousConnection;
 
-  void _onReceiveTaskData(dynamic data) async {
-    if (data is! Map<String, dynamic>) return;
-    if (!(data.containsKey('latitude') && data.containsKey('longitude'))) return;
-    // TODO: backend removed - updateUserGeolocation
-  }
-
   @override
   void initState() {
     _pages = [
@@ -256,11 +249,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _initiateApps();
 
-      // ForegroundUtil.requestPermissions();
-      if (!PlatformService.isDesktop) {
-        await ForegroundUtil.initializeForegroundService();
-        await ForegroundUtil.startForegroundTask();
-      }
       if (mounted) {
         await Provider.of<HomeProvider>(context, listen: false).setUserPeople();
       }
@@ -339,8 +327,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
     _checkForAnnouncements();
     super.initState();
 
-    // After init
-    FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
   }
 
   void _checkForAnnouncements() {
@@ -860,9 +846,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
     } catch (_) {}
     // Clean up freemium handler
     _freemiumHandler.dispose();
-    // Remove foreground task callback to prevent memory leak
-    FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
-    ForegroundUtil.stopForegroundTask();
     super.dispose();
   }
 }
