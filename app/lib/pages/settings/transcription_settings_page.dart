@@ -19,6 +19,7 @@ import 'package:omi/models/custom_stt_config.dart';
 import 'package:omi/models/stt_provider.dart';
 // TODO: page deleted - import 'package:omi/pages/settings/usage_page.dart';
 import 'package:omi/providers/capture_provider.dart';
+import 'package:omi/providers/local_capture_provider.dart';
 import 'package:omi/services/custom_stt_log_service.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/sockets/transcription_service.dart';
@@ -70,6 +71,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
   int _configSyncVersion = 0;
 
   bool _showApiKey = false;
+  bool _offlineModeEnabled = false;
 
   SttProviderConfig get _currentConfig => SttProviderConfig.get(_selectedProvider);
   CustomSttConfig? get _currentProviderConfig => _configsPerProvider[_selectedProvider];
@@ -84,6 +86,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
     _urlController.addListener(_updateModelPresence);
     _loadConfig();
     _checkConnectedDevice();
+    _offlineModeEnabled = SharedPreferencesUtil().offlineModeEnabled;
     // Initial check
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateModelPresence());
   }
@@ -243,8 +246,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
 
     // Restore JSON configs if customized
     if (config != null) {
-      final hasCustomRequest =
-          config.requestType != null ||
+      final hasCustomRequest = config.requestType != null ||
           config.headers != null ||
           config.params != null ||
           config.audioFieldName != null;
@@ -789,18 +791,71 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSourceSelector(),
-                  const SizedBox(height: 24),
-                  if (_useCustomStt) ...[
-                    _buildProviderSection(),
-                    const SizedBox(height: 20),
-                    _buildConfigSection(),
-                    const SizedBox(height: 10),
-                    _buildAdvancedSection(),
-                    _buildLogsSection(),
-                  ] else ...[
-                    _buildOmiFeatures(),
-                  ],
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1E),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Offline Mode',
+                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            Consumer2<CaptureProvider, LocalCaptureProvider>(
+                              builder: (_, capture, local, __) {
+                                final isRecording = capture.isRecording || local.isRecording;
+                                return Switch(
+                                  value: _offlineModeEnabled,
+                                  onChanged: isRecording
+                                      ? null
+                                      : (val) async {
+                                          await SharedPreferencesUtil().setOfflineModeEnabled(val);
+                                          setState(() => _offlineModeEnabled = val);
+                                        },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Uses Apple Speech Recognition. Recordings stored only on this device. Restart the app to apply changes.',
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IgnorePointer(
+                    ignoring: _offlineModeEnabled,
+                    child: Opacity(
+                      opacity: _offlineModeEnabled ? 0.4 : 1.0,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSourceSelector(),
+                          const SizedBox(height: 24),
+                          if (_useCustomStt) ...[
+                            _buildProviderSection(),
+                            const SizedBox(height: 20),
+                            _buildConfigSection(),
+                            const SizedBox(height: 10),
+                            _buildAdvancedSection(),
+                            _buildLogsSection(),
+                          ] else ...[
+                            _buildOmiFeatures(),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -864,8 +919,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
 
     if (isLowSpec && !isIOS) {
       // Android low-spec: "Not Compatible" Dialog (Whisper may crash)
-      proceed =
-          await showDialog<bool>(
+      proceed = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: const Color(0xFF1A1A1A),
@@ -912,8 +966,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
           false;
     } else if (isLowSpec && isIOS) {
       // iOS low-spec: Milder "Performance Warning" (Apple Speech won't crash)
-      proceed =
-          await showDialog<bool>(
+      proceed = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: const Color(0xFF1A1A1A),
@@ -959,8 +1012,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
           false;
     } else {
       // Standard "High Resource Usage" Warning for capable devices
-      proceed =
-          await showDialog<bool>(
+      proceed = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: const Color(0xFF1A1A1A),
@@ -1764,9 +1816,8 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
             child: Text(context.l10n.cancel, style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: (freeSpaceMB != null && freeSpaceMB < estimatedSizeMB)
-                ? null
-                : () => Navigator.pop(context, true),
+            onPressed:
+                (freeSpaceMB != null && freeSpaceMB < estimatedSizeMB) ? null : () => Navigator.pop(context, true),
             child: Text(context.l10n.download, style: const TextStyle(color: Colors.blue)),
           ),
         ],
@@ -2228,14 +2279,14 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
                               isError
                                   ? Icons.error_outline
                                   : isWarning
-                                  ? Icons.warning_amber_outlined
-                                  : Icons.info_outline,
+                                      ? Icons.warning_amber_outlined
+                                      : Icons.info_outline,
                               size: 12,
                               color: isError
                                   ? Colors.red.shade400
                                   : isWarning
-                                  ? Colors.orange.shade400
-                                  : Colors.grey.shade500,
+                                      ? Colors.orange.shade400
+                                      : Colors.grey.shade500,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -2245,8 +2296,8 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
                                   color: isError
                                       ? Colors.red.shade300
                                       : isWarning
-                                      ? Colors.orange.shade300
-                                      : Colors.grey.shade400,
+                                          ? Colors.orange.shade300
+                                          : Colors.grey.shade400,
                                   fontSize: 11,
                                   fontFamily: 'monospace',
                                 ),
@@ -2405,9 +2456,8 @@ class _JsonEditorPageState extends State<_JsonEditorPage> {
 
   Widget _buildTemplateSelector() {
     final isResponseSchema = widget.isResponseSchema;
-    final templates = isResponseSchema
-        ? SttResponseSchema.templates.keys.toList()
-        : SttProviderConfig.requestTemplates.keys.toList();
+    final templates =
+        isResponseSchema ? SttResponseSchema.templates.keys.toList() : SttProviderConfig.requestTemplates.keys.toList();
     final description = isResponseSchema ? context.l10n.quicklyPopulateResponse : context.l10n.quicklyPopulateRequest;
 
     return Column(
