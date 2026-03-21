@@ -1,182 +1,273 @@
-# Offline Mod Toggle — Tasarım Dokümanı
+# Offline Mode Toggle — Design Spec
 
-**Tarih:** 2026-03-21
-**Platform:** Flutter (iOS)
-**Bağımlılık:** Backend yok — BLE → Native iOS STT → SQLite
-
----
-
-## 1. Genel Bakış
-
-Mevcut Omi Flutter uygulamasına "Offline Mod" toggle'ı eklenir. Toggle açıkken:
-- Backend WebSocket bağlantısı kurulmaz
-- Devkit 2'den gelen BLE sesi doğrudan native iOS `SFSpeechRecognizer`'a beslenir
-- Transkripsiyon sonuçları yerel SQLite'a kaydedilir
-
-Toggle kapalıyken mevcut akış hiç değişmez.
+**Date:** 2026-03-21
+**Platform:** Flutter (iOS primary; Android path unchanged)
+**Dependency:** No backend — BLE → Native iOS STT → SQLite
 
 ---
 
-## 2. Mimari
+## 1. Overview
 
-### Yaklaşım: Provider Swap
+Add an "Offline Mode" toggle to the existing Omi Flutter app. When enabled:
+- No backend WebSocket connection is established
+- Audio from Devkit 2 BLE is fed directly to native iOS `SFSpeechRecognizer` via `SFSpeechAudioBufferRecognitionRequest`
+- Transcription results are saved to local SQLite only
 
-Offline flag `SharedPreferences`'a yazılır. Uygulama başlarken flag okunur; `true` ise `LocalCaptureProvider` aktif edilir, backend'e bağlanılmaz. `CaptureProvider` ve mevcut akış dokunulmaz.
+When disabled, the existing `CaptureProvider` flow is unchanged.
 
-### Veri Akışı (offline mod açıkken)
+**Locale scope:** Turkish-only (`tr_TR`) for this iteration. Locale-awareness is deferred.
+
+---
+
+## 2. Architecture
+
+### Approach: Provider Swap
+
+The offline flag is persisted in `SharedPreferences`. On app start the flag is read; if `true`, `LocalCaptureProvider` is active and no backend connection is attempted. `CaptureProvider` and its entire downstream are untouched.
+
+### Data Flow (offline mode on)
 
 ```
 Devkit 2 (BLE)
-  → Opus decode → PCM16 Uint8List chunks
-  → MethodChannel "omi/ble_stt" sendBuffer(bytes)
-  → Swift: AVAudioPCMBuffer → SFSpeechAudioBufferRecognitionRequest.append()
-  → EventChannel "omi/ble_stt/results" onTranscript(text)
+  → Opus decode → PCM16 Uint8List chunks (16 kHz, mono)
+  → MethodChannel "com.omi/ble_stt" sendBuffer(bytes)
+  → Swift: AVAudioPCMBuffer (Float32, 16000 Hz, 1ch)
+         → SFSpeechAudioBufferRecognitionRequest.append()
+  → EventChannel "com.omi/ble_stt/results" onTranscript(text)
   → BleAudioSpeechServiceIos.transcribe() stream
   → LocalCaptureProvider.currentTranscript
-  → UI gösterimi
-  → stopRecording() → SQLite (AppDatabase)
+  → UI display
+  → stopRecording() → AppDatabase (SQLite)
 ```
 
-### Kısıt Notu
+### Why not `speech_to_text` package
 
-`speech_to_text` Flutter paketi yalnızca mikrofon yolunu sarıyor; `SFSpeechAudioBufferRecognitionRequest` API'sini açmıyor. Bu nedenle paketi bypass eden özel bir native plugin (`BleAudioSttPlugin.swift`) yazılır. iOS natively bu API'yi destekliyor; kısıt paketteydi, OS'ta değil.
+`speech_to_text` wraps only the microphone path of `SFSpeechRecognizer`. `SFSpeechAudioBufferRecognitionRequest`, which accepts arbitrary PCM buffers, is not exposed. The limitation is in the package, not in iOS. A custom native plugin bypasses the package entirely.
 
 ---
 
-## 3. Bileşenler
+## 3. Components
 
-### 3.1 `SharedPreferencesUtil` — flag eklenir
+### 3.1 `SharedPreferencesUtil` — add flag
+
+**File:** `lib/backend/preferences.dart`
 
 ```dart
-// lib/backend/preferences.dart
-bool get offlineModeEnabled => getBool('offlineModeEnabled') ?? false;
-set offlineModeEnabled(bool v) => setBool('offlineModeEnabled', v);
+bool get offlineModeEnabled => getBool('offlineModeEnabled');
+Future<bool> setOfflineModeEnabled(bool v) => saveBool('offlineModeEnabled', v);
 ```
 
-### 3.2 `BleAudioSpeechServiceIos` — yeni sınıf
+Use `saveBool` (the existing async wrapper) rather than `setBool` directly, consistent with every other setter in `preferences.dart`.
 
-**Dosya:** `lib/services/speech/ble_audio_speech_service_ios.dart`
+`getBool` already returns `false` by default when the key is absent — no `?? false` needed.
 
-`SpeechService` interface'ini implement eder. BLE'den gelen `Stream<Uint8List>` chunk'larını `MethodChannel` üzerinden Swift'e iletir. Swift'ten gelen transkript sonuçlarını `EventChannel` üzerinden stream olarak döndürür.
+**Pre-condition:** `SharedPreferencesUtil.init()` is currently commented out in `main.dart` (`// TODO: service removed`). This must be restored **before** `SpeechServiceFactory.create()` is called in `_init()`. The two steps are order-dependent: `init()` must complete first so `_preferences` is non-null when the factory reads `offlineModeEnabled`.
 
-### 3.3 `BleAudioSttPlugin.swift` — native iOS plugin
+### 3.2 `BleAudioSpeechServiceIos` — new class
 
-**Dosya:** `ios/Runner/BleAudioSttPlugin.swift`
+**File:** `lib/services/speech/ble_audio_speech_service_ios.dart`
 
-- `MethodChannel("omi/ble_stt")`: `sendBuffer(bytes)` → `SFSpeechAudioBufferRecognitionRequest.append()`
-- `EventChannel("omi/ble_stt/results")`: finalize edilmiş transkript segmentlerini Flutter'a gönderir
-- `SFSpeechRecognizer(locale: Locale("tr", "TR"))` ile başlatılır
-- Türkçe offline model cihazda yoksa online fallback yapar (privacy policy'de belirtilmeli)
+Implements `SpeechService`. Forwards `Stream<Uint8List>` chunks to Swift via `MethodChannel("com.omi/ble_stt")`. Receives finalized transcript segments from Swift via `EventChannel("com.omi/ble_stt/results")`.
 
-### 3.4 `SpeechServiceFactory` — güncellenir
+**Note:** This is the first `SpeechService` implementation that actually uses the `audioStream` parameter of `transcribe()`. The class-level doc comment in `speech_service.dart` currently states the parameter is ignored by all platform implementations — that comment must be updated when this class is added.
+
+Channel naming follows the existing convention in this codebase (`com.omi/` prefix, matching `com.omi/phone_calls`, `com.omi/environment`, etc.).
+
+### 3.3 `BleAudioSttPlugin.swift` — new native plugin
+
+**File:** `ios/Runner/BleAudioSttPlugin.swift`
+
+Implements `FlutterPlugin` (same pattern as `PhoneCallsPlugin.swift`).
+
+- `MethodChannel("com.omi/ble_stt")`: receives `sendBuffer(bytes: FlutterStandardTypedData)` calls; converts each to `AVAudioPCMBuffer` and appends to the active recognition request.
+- `EventChannel("com.omi/ble_stt/results")`: emits finalized transcript strings to Flutter.
+- `SFSpeechRecognizer(locale: Locale("tr", "TR"))` — Turkish only this iteration.
+- `SFSpeechAudioBufferRecognitionRequest` — audio format: `AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false)`. Incoming PCM16 bytes are converted to Float32 before appending.
+- `shouldReportPartialResults = true` (improves final accuracy; partial results are received in Swift but only final results are forwarded to the EventChannel — see stream contract below).
+- `endAudio()` must be called on the recognition request when the Dart side calls `stop()`, so the final segment is flushed before the recognition task closes.
+
+**Stream contract:** `BleAudioSpeechServiceIos.transcribe()` emits only *finalized* segments (when `SFSpeechRecognitionResult.isFinal == true`), consistent with the `SpeechService` interface contract ("finalized transcript segments only"). Partial results are used internally by `SFSpeechRecognizer` for accuracy but are not forwarded to the Dart stream. This means `LocalCaptureProvider` can safely append each emission to `currentTranscript` without a replace-last-partial mechanism.
+
+**Error handling:** Authorization denial and recognition task errors are sent as error events on the `EventChannel` so they propagate to `BleAudioSpeechServiceIos` and surface to the UI (see Section 3.7).
+
+### 3.4 `AppDelegate.swift` — register plugin
+
+**File:** `ios/Runner/AppDelegate.swift`
+
+Add inside `application(_:didFinishLaunchingWithOptions:)`, following the existing `PhoneCallsPlugin` pattern:
+
+```swift
+BleAudioSttPlugin.register(with: self.registrar(forPlugin: "BleAudioSttPlugin")!)
+```
+
+### 3.5 `SpeechServiceFactory` — add offline branch
+
+**File:** `lib/services/speech/speech_service_factory.dart`
 
 ```dart
-// lib/services/speech/speech_service_factory.dart
 static Future<SpeechService> create() async {
   final offlineMode = SharedPreferencesUtil().offlineModeEnabled;
   if (Platform.isIOS) {
-    return offlineMode
-        ? BleAudioSpeechServiceIos()
-        : PlatformSpeechServiceIos();  // mevcut, mikrofon tabanlı
+    if (offlineMode) return BleAudioSpeechServiceIos();
+    return PlatformSpeechServiceIos(); // existing microphone-based
   }
-  // Android: mevcut akış değişmez
+  // Android: existing path unchanged
   ...
 }
 ```
 
-### 3.5 `LocalCaptureProvider` — `main.dart`'a inject edilir
+Note: `BleAudioSpeechServiceIos` is returned without pre-calling `initialize()` at factory time. `SFSpeechRecognizer` authorization failures will surface on the first `startRecording()` call, which is acceptable because the UI handles `SpeechServiceException` there.
+
+### 3.6 `LocalCaptureProvider` — inject into `main.dart`
+
+**File:** `lib/main.dart`
+
+`ChangeNotifierProvider.create` is synchronous and cannot `await`. Pattern: declare a module-level `late` variable before `main()`, resolve the service in `_init()`, then pass it synchronously into the provider.
+
+Ordering in `_init()` (explicit, order-dependent):
+1. `await SharedPreferencesUtil.init()` — must come before step 2; restores `_preferences` so the flag is readable
+2. `_resolvedSpeechService = await SpeechServiceFactory.create()` — reads `offlineModeEnabled` from now-initialized prefs
+
+`SharedPreferencesUtil.init()` is currently safe to restore at line 103 — `ServiceManager.init()` and `PlatformManager.initializeServices()` at lines 94 and 98 do not depend on `SharedPreferencesUtil` being initialized first.
 
 ```dart
-// lib/main.dart — MultiProvider listesine eklenir
+// top-level, before main()
+late SpeechService _resolvedSpeechService;
+
+// inside _init(), after line 98:
+await SharedPreferencesUtil.init();
+_resolvedSpeechService = await SpeechServiceFactory.create();
+```
+
+Then in `MultiProvider`:
+
+```dart
 ChangeNotifierProvider(
   create: (_) => LocalCaptureProvider(
-    speechService: await SpeechServiceFactory.create(),
+    speechService: _resolvedSpeechService,
     database: AppDatabase.instance,
   ),
 ),
 ```
 
-`LocalCaptureProvider` koduna dokunulmaz; zaten `Stream<Uint8List>` alıp `SpeechService`'e veren doğru tasarımda.
+### 3.7 `LocalCaptureProvider` — surface errors
 
-### 3.6 `TranscriptionSettingsPage` — toggle eklenir
+**File:** `lib/providers/local_capture_provider.dart`
 
-**Dosya:** `lib/pages/settings/transcription_settings_page.dart`
+**Current state (not yet changed):** line 101 silently swallows errors:
+```dart
+onError: (_) => notifyListeners(),
+```
 
-Sayfanın en üstüne offline mod toggle'ı eklenir:
-
-- Toggle açılınca: `SharedPreferencesUtil().offlineModeEnabled = true`, mevcut WebSocket bağlantısı kapatılır
-- Toggle kapanınca: `false`, normal akış devam eder
-- Toggle açıkken altındaki tüm provider seçim alanları `IgnorePointer` + `Opacity(0.4)` ile devre dışı bırakılır
-- Açıklama metni: `"Offline modda transkripsiyon Apple Konuşma Tanıma ile yapılır. Kayıtlar yalnızca bu cihazda saklanır."`
-
-### 3.7 `developer.dart` — STT chip güncellenir
-
-`_buildSttChip()` metodu offline mod açıkken `"Apple STT"` gösterir:
+**Must change during implementation:** add a `transcriptError` field and update the error handler:
 
 ```dart
-Widget _buildSttChip() {
-  if (SharedPreferencesUtil().offlineModeEnabled) {
-    return _chip('Apple STT');
-  }
-  // mevcut mantık...
+String? transcriptError;
+
+void _listenTranscript(Stream<Uint8List> audioStream) {
+  _transcriptSub = _speechService.transcribe(audioStream).listen(
+    (segment) { ... },
+    onError: (e) {
+      transcriptError = e.toString();
+      notifyListeners();
+    },
+  );
 }
 ```
 
-### 3.8 Kayıt ekranı — `LocalCaptureProvider`'ı dinler
+The recording UI reads `transcriptError` and shows a snackbar/banner when non-null.
 
-**Dosya:** `lib/pages/conversation_capturing/page.dart`
+### 3.8 `TranscriptionSettingsPage` — add toggle
 
-- `context.watch<LocalCaptureProvider>()` eklenir
-- `offlineModeEnabled` flag'i okunur
-- Offline modda:
-  - `LocalCaptureProvider.startRecording(audioStream: bleStream)` çağrılır
-  - `LocalCaptureProvider.currentTranscript` gösterilir
-  - `LocalCaptureProvider.stopRecording()` → SQLite'a kaydeder
-  - Ekranın üstünde chip: `"📴 Offline · Apple STT"`
-- Normal modda: mevcut akış değişmez
+**File:** `lib/pages/settings/transcription_settings_page.dart`
 
----
+Toggle at the top of the page:
 
-## 4. Etkilenmeyen Bileşenler
+- On: `await SharedPreferencesUtil().setOfflineModeEnabled(true)` (async setter, `await` in the `onChanged` handler).
+- Off: `await SharedPreferencesUtil().setOfflineModeEnabled(false)`.
+- **Takes effect on next app launch.** The `LocalCaptureProvider` and its injected `SpeechService` are created at startup; toggling at runtime does not swap the live provider. The UI should communicate this clearly.
+- **Toggle is disabled while a recording is in progress** (check `CaptureProvider.isRecording || LocalCaptureProvider.isRecording`). This avoids mid-session state changes.
+- All provider selection widgets below the toggle are wrapped in `IgnorePointer` + `Opacity(0.4)` when toggle is on.
+- Description text: `"Offline mode uses Apple Speech Recognition. Recordings are stored only on this device. Restart the app to apply changes."`
 
-- `CaptureProvider` — hiç değişmez
-- `ConversationProvider` — hiç değişmez
-- Mevcut SQLite şeması (`AppDatabase`) — yeterli, değişmez
-- Android akışı — değişmez
+### 3.9 `developer.dart` — update STT chip
 
----
+**File:** `lib/pages/settings/developer.dart`
 
-## 5. Hata Durumları
+```dart
+Widget _buildSttChip() {
+  if (SharedPreferencesUtil().offlineModeEnabled) return _chip('Apple STT');
+  // existing logic...
+}
+```
 
-| Durum | Davranış |
-|-------|----------|
-| BLE bağlantısı yok, offline mod açık | Kayıt başlatılamaz, kullanıcıya "Devkit 2 bağlı değil" mesajı |
-| `SFSpeechRecognizer` izni yok | `SpeechServiceException` fırlatılır, kullanıcıya izin istenir |
-| Türkçe offline model yüklü değil | SFSpeechRecognizer online fallback yapar (privacy note) |
-| SQLite yazma hatası | `stopRecording()` hata loglar, kullanıcıya bildirim gösterir |
+Note: `_buildSttChip()` reads `SharedPreferencesUtil()` directly (not via `ChangeNotifier`), matching the existing pattern in this file. The chip will not update reactively while the settings page is open; this is a known limitation consistent with the rest of the page's pattern.
 
----
+### 3.10 Recording screen — consume `LocalCaptureProvider`
 
-## 6. Dosya Değişiklik Özeti
+**File:** `lib/pages/conversation_capturing/page.dart`
 
-| Dosya | Değişim |
-|-------|---------|
-| `lib/backend/preferences.dart` | `offlineModeEnabled` getter/setter eklenir |
-| `lib/services/speech/ble_audio_speech_service_ios.dart` | **Yeni** |
-| `ios/Runner/BleAudioSttPlugin.swift` | **Yeni** |
-| `lib/services/speech/speech_service_factory.dart` | Offline mod dalı eklenir |
-| `lib/main.dart` | `LocalCaptureProvider` inject edilir |
-| `lib/pages/settings/transcription_settings_page.dart` | Toggle eklenir |
-| `lib/pages/settings/developer.dart` | `_buildSttChip()` güncellenir |
-| `lib/pages/conversation_capturing/page.dart` | Offline mod dalı eklenir |
+- Add `context.watch<LocalCaptureProvider>()`.
+- Read `SharedPreferencesUtil().offlineModeEnabled`.
+- Offline mode on:
+  - Obtain `bleStream` via a new public method on `DeviceProvider`: `Stream<Uint8List> getBleAudioStream()`. This method calls `ServiceManager.instance().device.ensureConnection(deviceId)` (same underlying mechanism as `CaptureProvider._getBleAudioBytesListener`) and wraps the callback in a `StreamController.broadcast()`. Adding this public method avoids duplicating the private BLE subscription logic and avoids a double-consume problem.
+  - Call `LocalCaptureProvider.startRecording(audioStream: bleStream)`.
+  - Display `LocalCaptureProvider.currentTranscript`.
+  - Show `transcriptError` as a snackbar when non-null.
+  - On stop: `LocalCaptureProvider.stopRecording()` → SQLite.
+  - Status chip at top of screen: `"Offline · Apple STT"`.
+- Offline mode off: existing flow, no changes.
 
 ---
 
-## 7. Test Kriterleri
+## 4. Unchanged Components
 
-- Toggle açılıp kapatılınca `SharedPreferences` değeri doğru yazılıyor
-- Offline modda WebSocket bağlantısı kurulmaya çalışılmıyor
-- BLE'den gelen ses Swift plugin'e ulaşıyor, transkript Flutter'a dönüyor
-- `stopRecording()` sonrası SQLite'ta yeni kayıt var
-- Provider seçim alanları toggle açıkken tıklanamıyor
-- `_buildSttChip()` offline modda `"Apple STT"` gösteriyor
+- `CaptureProvider` — not touched
+- `ConversationProvider` — not touched
+- `AppDatabase` schema — sufficient as-is
+- Android flow — not touched
+
+---
+
+## 5. Error Cases
+
+| Condition | Behavior |
+|-----------|----------|
+| BLE not connected, offline mode on | `startRecording()` fails; UI shows "Devkit 2 not connected" |
+| `SFSpeechRecognizer` permission denied | `SpeechServiceException` thrown; UI shows permission prompt |
+| Turkish offline model not on device | `SFSpeechRecognizer` falls back to online recognition (must be disclosed in privacy policy) |
+| SQLite write error | `stopRecording()` logs error; UI shows error banner |
+| Toggle flipped during active recording | Toggle is disabled; user must stop recording first |
+| EventChannel error from Swift | Propagates via `transcriptError`; shown as snackbar |
+
+---
+
+## 6. File Change Summary
+
+| File | Change |
+|------|--------|
+| `lib/backend/preferences.dart` | Add `offlineModeEnabled` getter and async `setOfflineModeEnabled()` |
+| `lib/main.dart` | Restore `SharedPreferencesUtil.init()`; add `late SpeechService _resolvedSpeechService`; resolve in `_init()`; inject `LocalCaptureProvider` |
+| `lib/services/speech/ble_audio_speech_service_ios.dart` | **New** |
+| `lib/services/speech/speech_service.dart` | Update class-level doc comment — `audioStream` is no longer ignored by all implementations |
+| `lib/services/speech/speech_service_factory.dart` | Add offline branch |
+| `lib/providers/local_capture_provider.dart` | Add `transcriptError` field; update `_listenTranscript` error handler |
+| `lib/providers/device_provider.dart` | Add public `getBleAudioStream()` method |
+| `ios/Runner/BleAudioSttPlugin.swift` | **New** |
+| `ios/Runner/AppDelegate.swift` | Register `BleAudioSttPlugin` |
+| `lib/pages/settings/transcription_settings_page.dart` | Add toggle |
+| `lib/pages/settings/developer.dart` | Update `_buildSttChip()` |
+| `lib/pages/conversation_capturing/page.dart` | Add offline mode branch |
+
+---
+
+## 7. Test Criteria
+
+- Toggle on/off correctly persists `offlineModeEnabled` in `SharedPreferences`
+- Toggle is disabled while recording is active
+- No WebSocket connection attempt in offline mode
+- BLE audio bytes reach Swift plugin; transcript returns to Flutter
+- `stopRecording()` creates a new row in SQLite
+- `transcriptError` surfaces as snackbar on STT failure
+- Provider selection widgets are non-interactive when offline toggle is on
+- `_buildSttChip()` shows `"Apple STT"` in offline mode
