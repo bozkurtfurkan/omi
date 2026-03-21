@@ -1,13 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
+import 'package:omi/database/app_database.dart';
 import 'package:omi/services/speech/speech_service.dart';
 
 /// Lightweight, fully local capture provider.
-/// Uses [SpeechService] for on-device STT and stores results locally.
+/// Uses [SpeechService] for on-device STT and [AppDatabase] for local storage.
 /// Does NOT depend on any backend, WebSocket, or cloud service.
 class LocalCaptureProvider extends ChangeNotifier {
   final SpeechService _speechService;
+  final AppDatabase? _database;
 
   /// Silence duration before auto-stopping a recording (configurable).
   final Duration silenceTimeout;
@@ -22,8 +26,10 @@ class LocalCaptureProvider extends ChangeNotifier {
 
   LocalCaptureProvider({
     required SpeechService speechService,
+    AppDatabase? database,
     this.silenceTimeout = const Duration(seconds: 60),
-  }) : _speechService = speechService;
+  })  : _speechService = speechService,
+        _database = database;
 
   Future<void> startRecording({required Stream<Uint8List> audioStream}) async {
     if (isRecording) return;
@@ -62,12 +68,27 @@ class LocalCaptureProvider extends ChangeNotifier {
 
   Future<void> stopRecording() async {
     if (!isRecording) return;
+    final endTime = DateTime.now();
     _silenceTimer?.cancel();
     await _speechService.stop();
     await _transcriptSub?.cancel();
     _transcriptSub = null;
     isRecording = false;
     isPaused = false;
+
+    if (_database != null && _recordingStartTime != null) {
+      await _database!.into(_database!.conversations).insert(
+            ConversationsCompanion.insert(
+              id: const Uuid().v4(),
+              startedAt: _recordingStartTime!,
+              endedAt: endTime,
+              durationSeconds: endTime.difference(_recordingStartTime!).inSeconds,
+              transcript: currentTranscript,
+              locale: const Value('tr_TR'),
+            ),
+          );
+    }
+
     notifyListeners();
   }
 
